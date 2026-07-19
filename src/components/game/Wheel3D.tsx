@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { motion } from "framer-motion";
 import { useGameStore } from "@/store/game-store";
+import { getClientId } from "@/lib/supabase/client-id";
 import { sound } from "@/lib/sound";
 import { AVATAR_COLORS } from "@/types";
 import { Button } from "@/components/ui/Button";
@@ -39,7 +40,6 @@ function WheelMesh({
     if (!ref.current || !started.current) return;
     if (!done.current) {
       angle.current += velocity.current;
-      // ease toward stop near target
       const diff = targetAngle - (angle.current % (Math.PI * 2));
       const normalized = ((diff % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
       if (velocity.current > 0.02) {
@@ -52,7 +52,6 @@ function WheelMesh({
         velocity.current = 0;
         onDone();
       }
-      // subtle shake near end
       const shake =
         velocity.current < 0.08 && velocity.current > 0.01
           ? Math.sin(Date.now() / 30) * 0.01
@@ -100,30 +99,70 @@ function WheelMesh({
 export function Wheel3D() {
   const players = useGameStore((s) => s.players);
   const spinDone = useGameStore((s) => s.spinDone);
+  const beginOnlineSpin = useGameStore((s) => s.beginOnlineSpin);
+  const onlineRoomId = useGameStore((s) => s.onlineRoomId);
+  const spinTargetIndex = useGameStore((s) => s.spinTargetIndex);
+  const onlineHostClientId = useGameStore((s) => s.onlineHostClientId);
   const soundEnabled = useGameStore((s) => s.settings.soundEnabled);
   const reduceMotion = useGameStore((s) => s.settings.reduceMotion);
   const [spinning, setSpinning] = useState(false);
   const [targetIdx, setTargetIdx] = useState(0);
   const [finished, setFinished] = useState(false);
   const [zoom, setZoom] = useState(false);
+  const [waitingHost, setWaitingHost] = useState(false);
 
+  const host = !onlineRoomId || onlineHostClientId === getClientId();
   const colors = players.map((p) => AVATAR_COLORS[p.color] || "#7C3AED");
   const n = Math.max(players.length, 1);
   const targetAngle = useMemo(() => {
     const slice = (Math.PI * 2) / n;
-    // point pointer (top) to center of segment
     return targetIdx * slice + slice / 2 + Math.PI * 2 * 4;
   }, [targetIdx, n]);
 
-  const startSpin = () => {
-    if (spinning) return;
-    const idx = Math.floor(Math.random() * players.length);
+  const runSpin = (idx: number) => {
     setTargetIdx(idx);
     setSpinning(true);
     setFinished(false);
     setZoom(false);
+    setWaitingHost(false);
     if (soundEnabled) sound.play("spin");
   };
+
+  // Online guest: follow shared spinTargetIndex from host
+  useEffect(() => {
+    if (!onlineRoomId) return;
+    if (spinning || finished) return;
+    if (spinTargetIndex == null) {
+      if (!host) setWaitingHost(true);
+      return;
+    }
+    runSpin(spinTargetIndex);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onlineRoomId, spinTargetIndex]);
+
+  // Local OR online host: start spin once
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (onlineRoomId) {
+        if (!host) {
+          // Guest waits for snapshot
+          if (spinTargetIndex != null) runSpin(spinTargetIndex);
+          else setWaitingHost(true);
+          return;
+        }
+        // Host: reuse snapshot index if already set (startGame), else roll
+        const idx =
+          spinTargetIndex != null ? spinTargetIndex : beginOnlineSpin();
+        runSpin(idx);
+        return;
+      }
+      // Offline / local party
+      const idx = Math.floor(Math.random() * Math.max(players.length, 1));
+      runSpin(idx);
+    }, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleDone = () => {
     if (finished) return;
@@ -131,16 +170,21 @@ export function Wheel3D() {
     setZoom(true);
     if (soundEnabled) sound.play("win");
     setTimeout(() => {
+      // Online: only host publishes the turn result
+      if (onlineRoomId && !host) return;
       spinDone(targetIdx);
     }, 900);
   };
 
-  // auto spin once when mounted
-  useEffect(() => {
-    const t = setTimeout(startSpin, 400);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  if (waitingHost && !spinning) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-10 text-center">
+        <div className="text-5xl animate-pulse">🎡</div>
+        <p className="text-lg font-bold text-white">Menunggu host putar roda…</p>
+        <p className="text-sm text-white/50">Game akan sync otomatis</p>
+      </div>
+    );
+  }
 
   if (reduceMotion) {
     return (
@@ -162,8 +206,15 @@ export function Wheel3D() {
             ▼
           </div>
         </div>
-        {!spinning && (
-          <Button onClick={startSpin} variant="orange" size="lg">
+        {!spinning && !onlineRoomId && (
+          <Button
+            onClick={() => {
+              const idx = Math.floor(Math.random() * players.length);
+              runSpin(idx);
+            }}
+            variant="orange"
+            size="lg"
+          >
             Putar Roda
           </Button>
         )}
@@ -178,61 +229,36 @@ export function Wheel3D() {
 
   return (
     <div className="flex w-full flex-col items-center gap-4">
-      <motion.div
-        animate={zoom ? { scale: 1.08 } : { scale: 1 }}
-        className="relative h-[280px] w-full max-w-md sm:h-[340px]"
-      >
-        <div className="absolute left-1/2 top-1 z-10 -translate-x-1/2 text-3xl drop-shadow-lg">
-          🔻
-        </div>
-        <Canvas camera={{ position: [0, 0, 5], fov: 40 }} dpr={[1, 1.5]}>
-          <ambientLight intensity={0.7} />
-          <directionalLight position={[3, 3, 5]} intensity={1} />
-          <pointLight position={[-2, 2, 3]} color="#f97316" intensity={0.5} />
+      <div className="relative h-72 w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-slate-950/60">
+        <Canvas camera={{ position: [0, 0, 5], fov: 42 }}>
+          <ambientLight intensity={0.6} />
+          <directionalLight position={[4, 4, 6]} intensity={1.2} />
           <WheelMesh
             spinning={spinning}
             targetAngle={targetAngle}
             onDone={handleDone}
             colors={colors.length ? colors : ["#7C3AED", "#F97316"]}
           />
-          <OrbitControls enableZoom={false} enablePan={false} enabled={false} />
+          <OrbitControls enableZoom={false} enablePan={false} />
         </Canvas>
-      </motion.div>
-
-      <div className="flex flex-wrap justify-center gap-2">
-        {players.map((p, i) => (
-          <motion.div
-            key={p.id}
-            animate={
-              finished && i === targetIdx
-                ? { scale: 1.12, boxShadow: "0 0 20px #fbbf24" }
-                : { scale: 1 }
-            }
-            transition={{ type: "tween", duration: 0.3 }}
-            className="flex items-center gap-1 rounded-full border border-white/10 bg-slate-800/80 px-3 py-1 text-sm"
-            style={{ borderColor: AVATAR_COLORS[p.color] }}
-          >
-            <span>{p.avatar}</span>
-            <span className="font-medium text-white">{p.name}</span>
-          </motion.div>
-        ))}
+        <div className="pointer-events-none absolute left-1/2 top-2 z-10 -translate-x-1/2 text-3xl drop-shadow">
+          ▼
+        </div>
       </div>
 
-      {finished && (
-        <motion.p
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          className="text-center text-2xl font-black text-yellow-300"
-        >
-          {players[targetIdx]?.avatar} Giliran {players[targetIdx]?.name}!
-        </motion.p>
-      )}
-
-      {!spinning && (
-        <Button onClick={startSpin} variant="orange" size="lg">
-          Putar Lagi
-        </Button>
-      )}
+      <motion.div
+        animate={zoom ? { scale: [1, 1.15, 1] } : {}}
+        className="min-h-[2rem] text-center"
+      >
+        {finished && (
+          <p className="text-2xl font-black text-yellow-300">
+            {players[targetIdx]?.avatar} {players[targetIdx]?.name}!
+          </p>
+        )}
+        {onlineRoomId && finished && !host && (
+          <p className="mt-1 text-xs text-white/50">Sync dari host…</p>
+        )}
+      </motion.div>
     </div>
   );
 }

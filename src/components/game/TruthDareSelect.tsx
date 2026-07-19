@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useGameStore } from "@/store/game-store";
+import { getClientId } from "@/lib/supabase/client-id";
 import { sound } from "@/lib/sound";
 import { Button } from "@/components/ui/Button";
 import { AIHost } from "@/components/host/AIHost";
@@ -12,12 +13,17 @@ export function TruthDareSelect() {
   const players = useGameStore((s) => s.players);
   const idx = useGameStore((s) => s.currentPlayerIndex);
   const chooseCard = useGameStore((s) => s.chooseCard);
+  const onlineRoomId = useGameStore((s) => s.onlineRoomId);
   const soundEnabled = useGameStore((s) => s.settings.soundEnabled);
   const player = players[idx];
+  // Reactive: re-render when turn / players change
+  const canAct =
+    !onlineRoomId || players[idx]?.id === getClientId();
   const [picked, setPicked] = useState<"truth" | "dare" | null>(null);
   const [showRisk, setShowRisk] = useState(false);
 
   const pick = (type: "truth" | "dare", risk = false) => {
+    if (!canAct || picked) return;
     setPicked(type);
     if (soundEnabled) sound.play(type === "truth" ? "flip" : "whoosh");
     setTimeout(() => chooseCard(type, risk), type === "truth" ? 700 : 500);
@@ -48,21 +54,29 @@ export function TruthDareSelect() {
       )}
 
       <h2 className="text-center text-3xl font-black tracking-tight text-white sm:text-4xl">
-        Pilih{" "}
-        <span className="bg-gradient-to-r from-violet-400 to-orange-400 bg-clip-text text-transparent">
-          Truth
-        </span>{" "}
-        atau{" "}
-        <span className="bg-gradient-to-r from-orange-400 to-rose-400 bg-clip-text text-transparent">
-          Dare
-        </span>
+        {canAct ? (
+          <>
+            Pilih{" "}
+            <span className="bg-gradient-to-r from-violet-400 to-orange-400 bg-clip-text text-transparent">
+              Truth
+            </span>{" "}
+            atau{" "}
+            <span className="bg-gradient-to-r from-orange-400 to-rose-400 bg-clip-text text-transparent">
+              Dare
+            </span>
+          </>
+        ) : (
+          <span className="text-white/80">
+            Menunggu {player?.name ?? "pemain"} memilih…
+          </span>
+        )}
       </h2>
 
-      <div className="grid w-full grid-cols-1 gap-5 sm:grid-cols-2">
+      <div className={`grid w-full grid-cols-1 gap-5 sm:grid-cols-2 ${!canAct ? "pointer-events-none opacity-50" : ""}`}>
         {/* TRUTH CARD */}
         <motion.button
           type="button"
-          disabled={!!picked}
+          disabled={!!picked || !canAct}
           onClick={() => pick("truth")}
           initial={{ y: 40, opacity: 0, rotate: -6 }}
           animate={

@@ -267,6 +267,22 @@ export async function fetchRoomByCode(code: string): Promise<OnlineRoom | null> 
   return { room, players: players ?? [] };
 }
 
+export async function fetchRoomById(roomId: string): Promise<OnlineRoom | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const { data: room } = await sb
+    .from("rooms")
+    .select("*")
+    .eq("id", roomId)
+    .maybeSingle();
+  if (!room) return null;
+  const { data: players } = await sb
+    .from("room_players")
+    .select("*")
+    .eq("room_id", roomId);
+  return { room, players: players ?? [] };
+}
+
 export async function updateRoomPhase(
   roomId: string,
   phase: string,
@@ -289,6 +305,23 @@ export async function updateRoomPhase(
   if (extra?.gameState) patch.game_state = JSON.parse(JSON.stringify(extra.gameState));
   const { error } = await sb.from("rooms").update(patch).eq("id", roomId);
   if (error) console.warn("[supabase] updateRoomPhase", error.message);
+}
+
+/** Full room write used for multiplayer game sync */
+export async function pushRoomSnapshot(
+  roomId: string,
+  input: {
+    phase: string;
+    mode: GameMode;
+    settings: GameSettings;
+    gameState: Record<string, unknown>;
+  }
+) {
+  await updateRoomPhase(roomId, input.phase, {
+    mode: input.mode,
+    settings: input.settings,
+    gameState: input.gameState,
+  });
 }
 
 export async function syncRoomPlayers(roomId: string, players: Player[]) {

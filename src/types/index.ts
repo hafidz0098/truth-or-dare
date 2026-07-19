@@ -253,7 +253,7 @@ export const MODE_INFO: Record<
   },
   couple: {
     name: "Couple Mode",
-    description: "Kehidupan berdua: rumah, chat, makan, kebiasaan",
+    description: "Lebih personal: perasaan, diri sendiri, sisi soft-mu",
     icon: "💕",
     color: "#EC4899",
   },

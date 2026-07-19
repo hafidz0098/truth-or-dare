@@ -67,7 +67,7 @@ const HOST_LINES = {
   mode: {
     classic: ["Mode klasik, tapi tetap seru!"],
     party: ["PARTY MODE! Volume naik! 🎉"],
-    couple: ["Mode couple... manis banget 💕"],
+    couple: ["Mode couple... waktu buka sisi personalmu 💕"],
     family: ["Family friendly, aman untuk semua!"],
     extreme: ["EXTREME! Hati-hati... ⚡"],
     chaos: ["CHAOS MODE! Tidak ada aturan! 🌪️"],

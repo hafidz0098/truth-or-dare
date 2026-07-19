@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useGameStore } from "@/store/game-store";
+import { getClientId } from "@/lib/supabase/client-id";
 import { Button } from "@/components/ui/Button";
 import { AIHost } from "@/components/host/AIHost";
 import { sound } from "@/lib/sound";
@@ -14,10 +15,12 @@ export function CardReveal() {
   const idx = useGameStore((s) => s.currentPlayerIndex);
   const completeChallenge = useGameStore((s) => s.completeChallenge);
   const usePowerCard = useGameStore((s) => s.usePowerCard);
+  const onlineRoomId = useGameStore((s) => s.onlineRoomId);
   const settings = useGameStore((s) => s.settings);
   const [flipped, setFlipped] = useState(false);
   const [timer, setTimer] = useState(settings.timer);
   const player = players[idx];
+  const canAct = !onlineRoomId || players[idx]?.id === getClientId();
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -114,30 +117,36 @@ export function CardReveal() {
         </div>
       </motion.div>
 
-      <div className="flex w-full flex-wrap justify-center gap-3">
-        <Button
-          variant="orange"
-          size="lg"
-          onClick={() => {
-            if (settings.soundEnabled) sound.play("win");
-            completeChallenge(true);
-          }}
-        >
-          ✓ Selesai
-        </Button>
-        <Button
-          variant="ghost"
-          size="lg"
-          onClick={() => {
-            if (settings.soundEnabled) sound.play("fail");
-            completeChallenge(false);
-          }}
-        >
-          ✗ Gagal / Skip
-        </Button>
-      </div>
+      {!canAct ? (
+        <p className="rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-center text-sm text-white/70">
+          Menunggu {player?.name ?? "pemain"} menyelesaikan challenge… (sync online)
+        </p>
+      ) : (
+        <div className="flex w-full flex-wrap justify-center gap-3">
+          <Button
+            variant="orange"
+            size="lg"
+            onClick={() => {
+              if (settings.soundEnabled) sound.play("win");
+              completeChallenge(true);
+            }}
+          >
+            ✓ Selesai
+          </Button>
+          <Button
+            variant="ghost"
+            size="lg"
+            onClick={() => {
+              if (settings.soundEnabled) sound.play("fail");
+              completeChallenge(false);
+            }}
+          >
+            ✗ Gagal / Skip
+          </Button>
+        </div>
+      )}
 
-      {player && player.powerCards.length > 0 && (
+      {canAct && player && player.powerCards.length > 0 && (
         <div className="flex flex-wrap justify-center gap-2">
           <span className="w-full text-center text-xs text-white/50">Power Cards</span>
           {player.powerCards.map((power, i) => (

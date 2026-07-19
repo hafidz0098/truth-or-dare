@@ -48,10 +48,23 @@ export function LandingPage() {
     { name: string; avatar: string; xp: number; you?: boolean }[]
   >([]);
 
+  // Keep local input in sync after zustand rehydrate / external profile updates
+  useEffect(() => {
+    setName(profileName);
+  }, [profileName]);
+
   const unlockAudio = () => {
     sound.unlock();
     sound.setEnabled(settings.soundEnabled);
     sound.setVolume(settings.volume);
+  };
+
+  /** Commit display name into store before any play flow */
+  const commitProfileName = (override?: string) => {
+    const next = (override ?? name).trim() || profileName.trim() || "Player";
+    setName(next);
+    setProfile(next, profileAvatar, profileColor);
+    return next;
   };
 
   const menu = [
@@ -62,13 +75,24 @@ export function LandingPage() {
       desc: onlineEnabled ? "Room online (Supabase)" : "Jadi host (lokal)",
       action: async () => {
         unlockAudio();
+        commitProfileName();
         setBusy(true);
         await createRoom();
         setBusy(false);
       },
     },
     { id: "join" as const, label: "Join Room", icon: "🚪", desc: "Masuk dengan kode", action: () => setPanel("join") },
-    { id: "quick" as const, label: "Quick Play", icon: "⚡", desc: "Langsung main bareng bot", action: () => { unlockAudio(); quickPlay(); } },
+    {
+      id: "quick" as const,
+      label: "Quick Play",
+      icon: "⚡",
+      desc: "Langsung main bareng bot",
+      action: () => {
+        unlockAudio();
+        commitProfileName();
+        quickPlay();
+      },
+    },
     { id: "howto" as const, label: "How To Play", icon: "📖", desc: "Panduan cepat", action: () => setPanel("howto") },
     { id: "daily" as const, label: "Daily Challenge", icon: "📅", desc: "Misi harian", action: () => setPanel("daily") },
     { id: "leaderboard" as const, label: "Leaderboard", icon: "🏆", desc: "Peringkat lokal", action: () => setPanel("leaderboard") },
@@ -146,19 +170,45 @@ export function LandingPage() {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.4 }}
-          className="mt-8 w-full max-w-sm"
+          className="mt-8 w-full max-w-sm space-y-3"
         >
+          <label className="block">
+            <span className="mb-1.5 block text-center text-xs font-semibold uppercase tracking-wider text-white/40">
+              Nama kamu
+            </span>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={() => commitProfileName()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.currentTarget.blur();
+                  commitProfileName();
+                }
+              }}
+              maxLength={24}
+              placeholder="Isi nama dulu…"
+              className="w-full rounded-2xl border border-white/15 bg-slate-950/80 px-4 py-3 text-center text-base font-bold text-white outline-none ring-orange-400/40 placeholder:text-white/30 focus:ring-2"
+            />
+          </label>
           <Button
             size="xl"
             variant="orange"
             fullWidth
             onClick={() => {
               unlockAudio();
+              commitProfileName();
               quickPlay();
             }}
           >
             ▶ Play Now
           </Button>
+          <p className="text-center text-xs text-white/40">
+            Main sebagai{" "}
+            <span className="font-semibold text-orange-300">
+              {name.trim() || profileName || "Player"}
+            </span>
+          </p>
         </motion.div>
 
         {/* Menu grid */}
@@ -225,6 +275,7 @@ export function LandingPage() {
           disabled={busy || !code.trim()}
           onClick={async () => {
             unlockAudio();
+            commitProfileName();
             setBusy(true);
             await joinRoom(code, joinPassword);
             setBusy(false);
@@ -450,8 +501,10 @@ export function LandingPage() {
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
+            onBlur={() => commitProfileName()}
             className="w-full rounded-2xl border border-white/15 bg-slate-950 px-4 py-2 text-center text-white"
             placeholder="Nama"
+            maxLength={24}
           />
           <div className="flex flex-wrap justify-center gap-2">
             {AVATAR_EMOJIS.slice(0, 16).map((e) => (
@@ -502,7 +555,7 @@ export function LandingPage() {
             fullWidth
             variant="orange"
             onClick={() => {
-              setProfile(name, profileAvatar, profileColor);
+              commitProfileName();
               setPanel(null);
             }}
           >

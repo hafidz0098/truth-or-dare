@@ -15,12 +15,14 @@ import {
   type Category,
 } from "@/types";
 import { sound } from "@/lib/sound";
+import { getClientId } from "@/lib/supabase/client-id";
 
 export function Lobby() {
   const players = useGameStore((s) => s.players);
   const roomCode = useGameStore((s) => s.roomCode);
   const onlineStatus = useGameStore((s) => s.onlineStatus);
   const onlineRoomId = useGameStore((s) => s.onlineRoomId);
+  const onlineHostClientId = useGameStore((s) => s.onlineHostClientId);
   const settings = useGameStore((s) => s.settings);
   const phase = useGameStore((s) => s.phase);
   const addPlayer = useGameStore((s) => s.addPlayer);
@@ -31,6 +33,11 @@ export function Lobby() {
   const startGame = useGameStore((s) => s.startGame);
   const updateSettings = useGameStore((s) => s.updateSettings);
   const resetSession = useGameStore((s) => s.resetSession);
+  const myId = getClientId();
+  const isHost =
+    !onlineRoomId ||
+    onlineHostClientId === myId ||
+    players.some((p) => p.isHost && p.id === myId);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showRoom, setShowRoom] = useState(false);
   const [customTruth, setCustomTruth] = useState("");
@@ -88,17 +95,23 @@ export function Lobby() {
           })}
         </div>
         <div className="flex flex-wrap justify-center gap-3">
-          <Button
-            size="lg"
-            variant="orange"
-            onClick={() => {
-              if (settings.soundEnabled) sound.play("win");
-              startGame();
-            }}
-            disabled={players.length < 2}
-          >
-            🚀 Mulai Game
-          </Button>
+          {isHost ? (
+            <Button
+              size="lg"
+              variant="orange"
+              onClick={() => {
+                if (settings.soundEnabled) sound.play("win");
+                startGame();
+              }}
+              disabled={players.length < 2}
+            >
+              🚀 Mulai Game
+            </Button>
+          ) : (
+            <p className="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-3 text-center text-sm text-white/70">
+              Menunggu host memulai game… ({players.length} pemain)
+            </p>
+          )}
           <Button variant="ghost" onClick={() => useGameStore.setState({ phase: "lobby" })}>
             Kembali
           </Button>
@@ -253,22 +266,38 @@ export function Lobby() {
       )}
 
       <div className="flex flex-wrap gap-2">
-        <Button
-          variant="secondary"
-          onClick={() => addPlayer()}
-          disabled={players.length >= 20}
-        >
-          + Tambah Pemain
-        </Button>
-        <Button
-          variant="orange"
-          size="lg"
-          className="flex-1"
-          onClick={() => useGameStore.setState({ phase: "mode-select" })}
-          disabled={players.length < 2}
-        >
-          Lanjut Pilih Mode →
-        </Button>
+        {!onlineRoomId && (
+          <Button
+            variant="secondary"
+            onClick={() => addPlayer()}
+            disabled={players.length >= 20}
+          >
+            + Tambah Pemain
+          </Button>
+        )}
+        {onlineRoomId && (
+          <p className="w-full text-center text-xs text-white/50">
+            Online: bagikan kode room — teman join dari device lain. Min. 2 pemain untuk mulai.
+          </p>
+        )}
+        {isHost ? (
+          <Button
+            variant="orange"
+            size="lg"
+            className="flex-1"
+            onClick={() => {
+              useGameStore.setState({ phase: "mode-select" });
+              useGameStore.getState().pushOnlineSync(false);
+            }}
+            disabled={players.length < 2}
+          >
+            Lanjut Pilih Mode →
+          </Button>
+        ) : (
+          <p className="flex-1 rounded-2xl border border-white/10 bg-slate-900/50 px-3 py-3 text-center text-sm text-white/60">
+            Host yang pilih mode & mulai · {players.length} pemain online
+          </p>
+        )}
       </div>
 
       {showRoom && (

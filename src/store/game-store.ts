@@ -36,8 +36,14 @@ import {
   updateRoomPhase,
   upsertProfile,
   closeRoom,
+  pushRoomSnapshot,
 } from "@/lib/supabase/api";
 import { getClientId } from "@/lib/supabase/client-id";
+import {
+  isOnlineGameSnapshot,
+  type OnlineGameSnapshot,
+} from "@/lib/online-sync";
+import type { RoomRow } from "@/lib/supabase/types";
 import type {
   AvatarColor,
   CardType,
@@ -127,6 +133,9 @@ interface GameState {
   onlineEnabled: boolean;
   onlineStatus: "idle" | "connecting" | "online" | "offline" | "error";
   onlineError: string | null;
+  onlineHostClientId: string | null;
+  onlineSeq: number;
+  spinTargetIndex: number | null;
   players: Player[];
   phase: GamePhase;
   currentRound: number;
@@ -163,6 +172,11 @@ interface GameState {
   joinRoom: (code: string, password?: string) => Promise<void>;
   applyOnlinePlayers: (players: Player[]) => void;
   applyOnlinePhase: (phase: string, mode?: string) => void;
+  applyOnlineRoom: (room: RoomRow) => void;
+  pushOnlineSync: (alsoPlayers?: boolean) => void;
+  beginOnlineSpin: () => number;
+  isOnlineHost: () => boolean;
+  isMyOnlineTurn: () => boolean;
   quickPlay: () => void;
   addPlayer: (name?: string) => void;
   removePlayer: (id: string) => void;
@@ -202,6 +216,52 @@ function speak(
   set({ hostMessage: line.text, hostMood: line.mood });
 }
 
+/** Prevent re-push when applying remote multiplayer snapshots */
+let suppressOnlinePush = false;
+
+function buildOnlineSnapshot(s: GameState): OnlineGameSnapshot {
+  return {
+    seq: s.onlineSeq,
+    sourceClientId: getClientId(),
+    phase: s.phase,
+    currentRound: s.currentRound,
+    currentPlayerIndex: s.currentPlayerIndex,
+    direction: s.direction,
+    spinTargetIndex: s.spinTargetIndex,
+    lastCard: s.lastCard,
+    usedTruthIds: s.usedTruthIds,
+    usedDareIds: s.usedDareIds,
+    hostMessage: s.hostMessage,
+    hostMood: s.hostMood,
+    pendingDouble: s.pendingDouble,
+    selectedRisk: s.selectedRisk,
+    voting: s.voting,
+    activeEvent: s.activeEvent,
+    activeRoundEvent: s.activeRoundEvent
+      ? {
+          id: s.activeRoundEvent.id,
+          name: s.activeRoundEvent.name,
+          description: s.activeRoundEvent.description,
+          icon: s.activeRoundEvent.icon,
+        }
+      : null,
+    activeMiniGame: s.activeMiniGame,
+    mysteryResult: s.mysteryResult
+      ? ({
+          type: s.mysteryResult.type,
+          label: s.mysteryResult.label,
+          icon: s.mysteryResult.icon,
+          amount: "amount" in s.mysteryResult ? s.mysteryResult.amount : undefined,
+          power: "power" in s.mysteryResult ? s.mysteryResult.power : undefined,
+        } as OnlineGameSnapshot["mysteryResult"])
+      : null,
+    highlights: s.highlights,
+    bgMood: s.bgMood,
+    showConfetti: s.showConfetti,
+    mode: s.settings.mode,
+  };
+}
+
 export const useGameStore = create<GameState>()(
   persist(
     (set, get) => ({
@@ -229,6 +289,9 @@ export const useGameStore = create<GameState>()(
       onlineEnabled: isSupabaseConfigured(),
       onlineStatus: isSupabaseConfigured() ? "idle" : "offline",
       onlineError: null,
+      onlineHostClientId: null,
+      onlineSeq: 0,
+      spinTargetIndex: null,
       players: [],
       phase: "landing",
       currentRound: 0,
@@ -253,24 +316,41 @@ export const useGameStore = create<GameState>()(
       selectedRisk: false,
 
       setProfile: (name, avatar, color) => {
+        const displayName = (name ?? "").trim() || "Player";
         set({
-          profileName: name || "Player",
+          profileName: displayName,
           ...(avatar ? { profileAvatar: avatar } : {}),
           ...(color ? { profileColor: color } : {}),
         });
+        // Keep host player in current session in sync with profile name
         const s = get();
+        if (s.players.length > 0) {
+          set({
+            players: s.players.map((p) =>
+              p.isHost
+                ? {
+                    ...p,
+                    name: displayName,
+                    ...(avatar ? { avatar } : {}),
+                    ...(color ? { color } : {}),
+                  }
+                : p
+            ),
+          });
+        }
+        const next = get();
         void upsertProfile({
-          displayName: name || "Player",
-          avatar: avatar || s.profileAvatar,
-          color: color || s.profileColor,
+          displayName,
+          avatar: avatar || next.profileAvatar,
+          color: color || next.profileColor,
           xp: 0,
           coins: 0,
-          totalGames: s.profileStats.totalGames,
-          totalTruths: s.profileStats.totalTruths,
-          totalDares: s.profileStats.totalDares,
-          daresCompleted: s.profileStats.daresCompleted,
-          daresFailed: s.profileStats.daresFailed,
-          achievements: s.unlockedAchievements,
+          totalGames: next.profileStats.totalGames,
+          totalTruths: next.profileStats.totalTruths,
+          totalDares: next.profileStats.totalDares,
+          daresCompleted: next.profileStats.daresCompleted,
+          daresFailed: next.profileStats.daresFailed,
+          achievements: next.unlockedAchievements,
         });
       },
 
@@ -279,11 +359,12 @@ export const useGameStore = create<GameState>()(
 
       createRoom: async () => {
         const { profileName, profileAvatar, profileColor, settings } = get();
+        const displayName = profileName.trim() || "Player";
 
         if (isSupabaseConfigured()) {
           set({ onlineStatus: "connecting", onlineError: null });
           const online = await createOnlineRoom({
-            displayName: profileName,
+            displayName,
             avatar: profileAvatar,
             color: profileColor,
             settings,
@@ -293,17 +374,25 @@ export const useGameStore = create<GameState>()(
             const localHost =
               host ||
               (() => {
-                const p = makePlayer(profileName, true);
+                const p = makePlayer(displayName, true);
                 p.id = getClientId();
                 p.avatar = profileAvatar;
                 p.color = profileColor;
                 return p;
               })();
+            // Prefer local profile name if server still has empty/default
+            if (localHost.name === "Player" && displayName !== "Player") {
+              localHost.name = displayName;
+            }
             set({
               roomCode: online.room.code,
               onlineRoomId: online.room.id,
+              onlineHostClientId: online.room.host_client_id || getClientId(),
               onlineEnabled: true,
               onlineStatus: "online",
+              onlineSeq: 0,
+              spinTargetIndex: null,
+              profileName: displayName,
               players: [localHost],
               phase: "lobby",
               currentRound: 0,
@@ -320,14 +409,16 @@ export const useGameStore = create<GameState>()(
           });
         }
 
-        const host = makePlayer(profileName, true);
+        const host = makePlayer(displayName, true);
         host.id = getClientId();
         host.avatar = profileAvatar;
         host.color = profileColor;
         set({
           roomCode: roomCode(),
           onlineRoomId: null,
+          onlineHostClientId: null,
           onlineStatus: isSupabaseConfigured() ? "error" : "offline",
+          profileName: displayName,
           players: [host],
           phase: "lobby",
           currentRound: 0,
@@ -340,29 +431,40 @@ export const useGameStore = create<GameState>()(
 
       joinRoom: async (code, password) => {
         const { profileName, profileAvatar, profileColor } = get();
+        const displayName = profileName.trim() || "Player";
 
         if (isSupabaseConfigured() && code.trim()) {
           set({ onlineStatus: "connecting", onlineError: null });
           const res = await joinOnlineRoom({
             code,
-            displayName: profileName,
+            displayName,
             avatar: profileAvatar,
             color: profileColor,
             password,
           });
           if (res.ok) {
+            const room = res.data.room;
+            const gs = room.game_state;
             set({
-              roomCode: res.data.room.code,
-              onlineRoomId: res.data.room.id,
+              roomCode: room.code,
+              onlineRoomId: room.id,
+              onlineHostClientId: room.host_client_id,
               onlineEnabled: true,
               onlineStatus: "online",
+              profileName: displayName,
               players: roomPlayersToLocal(res.data.players),
-              phase: (res.data.room.phase as GamePhase) || "lobby",
+              phase: (room.phase as GamePhase) || "lobby",
               settings: {
                 ...get().settings,
-                mode: (res.data.room.mode as GameMode) || get().settings.mode,
+                mode: (room.mode as GameMode) || get().settings.mode,
+                ...(typeof room.settings === "object" && room.settings
+                  ? (room.settings as Partial<GameSettings>)
+                  : {}),
               },
             });
+            if (isOnlineGameSnapshot(gs)) {
+              get().applyOnlineRoom(room);
+            }
             speak(set, "intro");
             return;
           }
@@ -370,7 +472,7 @@ export const useGameStore = create<GameState>()(
           // still allow local join fallback with message
         }
 
-        const me = makePlayer(profileName);
+        const me = makePlayer(displayName);
         me.id = getClientId();
         me.avatar = profileAvatar;
         me.color = profileColor;
@@ -378,6 +480,8 @@ export const useGameStore = create<GameState>()(
         set({
           roomCode: code.toUpperCase() || roomCode(),
           onlineRoomId: null,
+          onlineHostClientId: null,
+          profileName: displayName,
           players: [host, me],
           phase: "lobby",
         });
@@ -386,10 +490,12 @@ export const useGameStore = create<GameState>()(
 
       applyOnlinePlayers: (players) => {
         if (players.length === 0) return;
+        // Keep stable order: host first, then join time (from mapper)
         set({ players });
       },
 
       applyOnlinePhase: (phase, mode) => {
+        // Legacy thin update — prefer applyOnlineRoom when game_state available
         const allowed: GamePhase[] = [
           "landing",
           "lobby",
@@ -404,22 +510,128 @@ export const useGameStore = create<GameState>()(
           "result",
           "highlights",
         ];
+        suppressOnlinePush = true;
         if (allowed.includes(phase as GamePhase)) {
           set({ phase: phase as GamePhase });
         }
         if (mode) {
           set((s) => ({ settings: { ...s.settings, mode: mode as GameMode } }));
         }
+        suppressOnlinePush = false;
+      },
+
+      applyOnlineRoom: (room) => {
+        const me = getClientId();
+        const gsRaw = room.game_state;
+        const gs = isOnlineGameSnapshot(gsRaw) ? gsRaw : null;
+
+        // Ignore our own echo / stale snapshots
+        if (gs) {
+          if (gs.sourceClientId === me && gs.seq <= get().onlineSeq) return;
+          if (gs.seq < get().onlineSeq) return;
+        }
+
+        suppressOnlinePush = true;
+
+        const patch: Partial<GameState> = {
+          onlineHostClientId: room.host_client_id || get().onlineHostClientId,
+        };
+
+        if (room.mode) {
+          patch.settings = {
+            ...get().settings,
+            mode: room.mode as GameMode,
+            ...(typeof room.settings === "object" && room.settings
+              ? (room.settings as Partial<GameSettings>)
+              : {}),
+          };
+        }
+
+        if (gs) {
+          patch.onlineSeq = gs.seq;
+          patch.phase = gs.phase;
+          patch.currentRound = gs.currentRound;
+          patch.currentPlayerIndex = gs.currentPlayerIndex;
+          patch.direction = gs.direction;
+          patch.spinTargetIndex = gs.spinTargetIndex;
+          patch.lastCard = gs.lastCard;
+          patch.usedTruthIds = gs.usedTruthIds ?? [];
+          patch.usedDareIds = gs.usedDareIds ?? [];
+          patch.hostMessage = gs.hostMessage;
+          patch.hostMood = gs.hostMood;
+          patch.pendingDouble = gs.pendingDouble;
+          patch.selectedRisk = gs.selectedRisk;
+          patch.voting = gs.voting;
+          patch.activeEvent = gs.activeEvent;
+          patch.activeRoundEvent = gs.activeRoundEvent as GameState["activeRoundEvent"];
+          patch.activeMiniGame = gs.activeMiniGame;
+          patch.mysteryResult = gs.mysteryResult as GameState["mysteryResult"];
+          patch.highlights = gs.highlights ?? [];
+          patch.bgMood = gs.bgMood;
+          patch.showConfetti = gs.showConfetti;
+        } else if (room.phase) {
+          patch.phase = room.phase as GamePhase;
+        }
+
+        set(patch);
+        suppressOnlinePush = false;
+      },
+
+      pushOnlineSync: (alsoPlayers = true) => {
+        if (suppressOnlinePush) return;
+        const s = get();
+        if (!s.onlineRoomId) return;
+
+        const nextSeq = s.onlineSeq + 1;
+        set({ onlineSeq: nextSeq });
+        const snap = buildOnlineSnapshot({ ...get(), onlineSeq: nextSeq });
+
+        void pushRoomSnapshot(s.onlineRoomId, {
+          phase: snap.phase,
+          mode: s.settings.mode,
+          settings: s.settings,
+          gameState: snap as unknown as Record<string, unknown>,
+        });
+
+        if (alsoPlayers) {
+          void syncRoomPlayers(s.onlineRoomId, get().players);
+        }
+      },
+
+      beginOnlineSpin: () => {
+        const { players, onlineRoomId } = get();
+        const idx =
+          players.length > 0 ? Math.floor(Math.random() * players.length) : 0;
+        set({ spinTargetIndex: idx, phase: "spinning" });
+        if (onlineRoomId) get().pushOnlineSync(false);
+        return idx;
+      },
+
+      isOnlineHost: () => {
+        const s = get();
+        if (!s.onlineRoomId) return true;
+        const me = getClientId();
+        if (s.onlineHostClientId) return s.onlineHostClientId === me;
+        return s.players.some((p) => p.isHost && p.id === me);
+      },
+
+      isMyOnlineTurn: () => {
+        const s = get();
+        if (!s.onlineRoomId) return true;
+        const cur = s.players[s.currentPlayerIndex];
+        return !!cur && cur.id === getClientId();
       },
 
       quickPlay: () => {
         const { profileName, profileAvatar, profileColor } = get();
-        const host = makePlayer(profileName, true);
+        const displayName = profileName.trim() || "Player";
+        const host = makePlayer(displayName, true);
         host.avatar = profileAvatar;
         host.color = profileColor;
         const bots = ["Alex", "Sam", "Rio", "Mika"].map((n) => makePlayer(n));
         set({
           roomCode: roomCode(),
+          profileName: displayName,
           players: [host, ...bots],
           phase: "mode-select",
           settings: { ...get().settings, mode: "party" },
@@ -428,23 +640,53 @@ export const useGameStore = create<GameState>()(
       },
 
       addPlayer: (name) => {
+        // Online rooms only get real joiners via Supabase — no local bots
+        if (get().onlineRoomId) return;
         const { players } = get();
         if (players.length >= 20) return;
+        const label = (name ?? "").trim() || `Player ${players.length + 1}`;
         set({
-          players: [...players, makePlayer(name || `Player ${players.length + 1}`)],
+          players: [...players, makePlayer(label)],
         });
       },
 
       removePlayer: (id) => {
-        const { players } = get();
+        const { players, onlineRoomId } = get();
+        if (onlineRoomId) return; // cannot remove remote players locally
         if (players.length <= 2) return;
         set({ players: players.filter((p) => p.id !== id) });
       },
 
-      updatePlayer: (id, partial) =>
-        set((s) => ({
-          players: s.players.map((p) => (p.id === id ? { ...p, ...partial } : p)),
-        })),
+      updatePlayer: (id, partial) => {
+        const { players, onlineRoomId } = get();
+        const target = players.find((p) => p.id === id);
+        if (!target) return;
+
+        const nextPlayers = players.map((p) =>
+          p.id === id ? { ...p, ...partial } : p
+        );
+        const patch: Partial<GameState> = { players: nextPlayers };
+
+        // Editing host name/avatar/color also updates persisted profile
+        if (target.isHost) {
+          if (typeof partial.name === "string") {
+            const displayName = partial.name.trim() || "Player";
+            patch.profileName = displayName;
+            // keep trimmed name on player
+            patch.players = nextPlayers.map((p) =>
+              p.id === id ? { ...p, name: displayName } : p
+            );
+          }
+          if (partial.avatar) patch.profileAvatar = partial.avatar;
+          if (partial.color) patch.profileColor = partial.color;
+        }
+
+        set(patch);
+
+        if (onlineRoomId) {
+          void syncRoomPlayers(onlineRoomId, get().players);
+        }
+      },
 
       randomizeAvatar: (id) => {
         get().updatePlayer(id, {
@@ -468,27 +710,31 @@ export const useGameStore = create<GameState>()(
             mode,
             adultContent: mode === "extreme" ? s.settings.adultContent : false,
           },
+          phase: s.onlineRoomId ? "mode-select" : s.phase,
           bgMood:
             mode === "chaos" ? "chaos" : mode === "party" ? "party" : "neutral",
         }));
         speak(set, "intro", { mode });
-        const { onlineRoomId, settings } = get();
-        if (onlineRoomId) {
-          void updateRoomPhase(onlineRoomId, "mode-select", {
-            mode,
-            settings: { ...settings, mode },
-          });
+        if (get().onlineRoomId) {
+          get().pushOnlineSync(false);
         }
       },
 
       startGame: () => {
         const { players, settings, onlineRoomId } = get();
         if (players.length < 2) return;
+        // Online: only host may start
+        if (onlineRoomId && !get().isOnlineHost()) return;
+
+        const firstSpin =
+          players.length > 0 ? Math.floor(Math.random() * players.length) : 0;
+
         set({
           phase: "spinning",
           currentRound: 1,
           currentPlayerIndex: 0,
           direction: 1,
+          spinTargetIndex: firstSpin,
           history: [],
           usedTruthIds: [],
           usedDareIds: [],
@@ -503,22 +749,31 @@ export const useGameStore = create<GameState>()(
         speak(set, "spin");
         get().bumpMission("play_rounds", 0);
         if (onlineRoomId) {
-          void updateRoomPhase(onlineRoomId, "spinning", {
-            mode: settings.mode,
-            settings,
-            gameState: { currentRound: 1, currentPlayerIndex: 0 },
-          });
-          void syncRoomPlayers(onlineRoomId, get().players);
+          get().pushOnlineSync(true);
         }
       },
 
       spinDone: (playerIndex) => {
-        set({ currentPlayerIndex: playerIndex, phase: "choose" });
+        // Guests wait for host/authority snapshot — don't double-advance
+        if (get().onlineRoomId && !get().isOnlineHost()) {
+          // If already advanced remotely, no-op
+          if (get().phase !== "spinning") return;
+        }
+        set({
+          currentPlayerIndex: playerIndex,
+          spinTargetIndex: playerIndex,
+          phase: "choose",
+        });
         speak(set, "spin");
+        if (get().onlineRoomId && get().isOnlineHost()) {
+          get().pushOnlineSync(false);
+        }
       },
 
       chooseCard: (type, riskReward = false) => {
         const state = get();
+        // Online: only the current player's device picks the card (and rolls RNG)
+        if (state.onlineRoomId && !get().isMyOnlineTurn()) return;
         const {
           settings,
           usedTruthIds,
@@ -609,10 +864,12 @@ export const useGameStore = create<GameState>()(
             settings.mode === "chaos" ? 25 : 8
           ),
         });
+        if (get().onlineRoomId) get().pushOnlineSync(false);
       },
 
       completeChallenge: (success) => {
         const state = get();
+        if (state.onlineRoomId && !get().isMyOnlineTurn()) return;
         const {
           players,
           currentPlayerIndex,
@@ -736,6 +993,7 @@ export const useGameStore = create<GameState>()(
             voting: { yes: 0, no: 0, open: true },
           });
           speak(set, "vote");
+          if (get().onlineRoomId) get().pushOnlineSync(true);
           return;
         }
 
@@ -773,14 +1031,16 @@ export const useGameStore = create<GameState>()(
         get().nextTurn();
       },
 
-      castVote: (yes) =>
+      castVote: (yes) => {
         set((s) => ({
           voting: {
             ...s.voting,
             yes: s.voting.yes + (yes ? 1 : 0),
             no: s.voting.no + (yes ? 0 : 1),
           },
-        })),
+        }));
+        if (get().onlineRoomId) get().pushOnlineSync(false);
+      },
 
       finishVoting: () => {
         const { voting, history } = get();
@@ -889,17 +1149,21 @@ export const useGameStore = create<GameState>()(
           const ev = pick(RANDOM_ROUND_EVENTS);
           set({ activeRoundEvent: ev, phase: "event", bgMood: "party" });
         }
+        if (get().onlineRoomId) get().pushOnlineSync(true);
       },
 
       clearEvent: () => {
         const { activeEvent } = get();
         set({ activeEvent: null, activeRoundEvent: null });
         if (activeEvent === "spin-again") {
-          set({ phase: "spinning" });
+          const idx = get().beginOnlineSpin();
+          set({ phase: "spinning", spinTargetIndex: idx });
+          if (get().onlineRoomId) get().pushOnlineSync(false);
           return;
         }
         if (activeEvent === "double-dare") {
           set({ pendingDouble: true, phase: "choose" });
+          if (get().onlineRoomId) get().pushOnlineSync(false);
           return;
         }
         if (activeEvent === "triple-truth") {
@@ -919,17 +1183,20 @@ export const useGameStore = create<GameState>()(
           if (other === get().currentPlayerIndex)
             other = (other + 1) % get().players.length;
           set({ currentPlayerIndex: other, phase: "choose" });
+          if (get().onlineRoomId) get().pushOnlineSync(false);
           return;
         }
         if (get().currentRound >= get().settings.rounds) get().endGame();
         else if (get().phase === "event") {
           set({ phase: "choose" });
+          if (get().onlineRoomId) get().pushOnlineSync(false);
         }
       },
 
       startMiniGame: (type) => {
         const t = type || pick(Object.keys(MINI_GAMES) as MiniGameType[]);
         set({ activeMiniGame: t, phase: "minigame", bgMood: "party" });
+        if (get().onlineRoomId) get().pushOnlineSync(false);
       },
 
       finishMiniGame: (winnerId) => {
@@ -970,6 +1237,7 @@ export const useGameStore = create<GameState>()(
           });
           players[i] = p;
           set({ players });
+          if (get().onlineRoomId) get().pushOnlineSync(true);
           return;
         }
         players[i] = p;
@@ -979,6 +1247,7 @@ export const useGameStore = create<GameState>()(
           phase: "mystery",
           showConfetti: true,
         });
+        if (get().onlineRoomId) get().pushOnlineSync(true);
       },
 
       clearMystery: () => {
@@ -988,17 +1257,19 @@ export const useGameStore = create<GameState>()(
       },
 
       nextTurn: () => {
-        const { players, currentPlayerIndex, direction, currentRound, settings } =
+        const { players, currentPlayerIndex, direction, currentRound, settings, onlineRoomId } =
           get();
         const n = players.length;
         if (n === 0) return;
-        let next = (currentPlayerIndex + direction + n) % n;
+        const next = (currentPlayerIndex + direction + n) % n;
         const newRound = currentRound + 1;
+        const spinIdx = Math.floor(Math.random() * n);
 
         set({
           currentPlayerIndex: next,
           currentRound: newRound,
           phase: "spinning",
+          spinTargetIndex: spinIdx,
           lastCard: null,
           bgMood:
             settings.mode === "chaos"
@@ -1015,7 +1286,10 @@ export const useGameStore = create<GameState>()(
 
         if (newRound > settings.rounds) {
           get().endGame();
+          return;
         }
+
+        if (onlineRoomId) get().pushOnlineSync(true);
       },
 
       endGame: () => {
@@ -1105,10 +1379,7 @@ export const useGameStore = create<GameState>()(
         const { onlineRoomId } = get();
         void submitSessionResults({ mode: settings.mode, players });
         if (onlineRoomId) {
-          void updateRoomPhase(onlineRoomId, "highlights", {
-            gameState: { highlights },
-          });
-          void syncRoomPlayers(onlineRoomId, players);
+          get().pushOnlineSync(true);
         }
       },
 
@@ -1120,11 +1391,11 @@ export const useGameStore = create<GameState>()(
           activeEvent: null,
           activeMiniGame: null,
           mysteryResult: null,
+          spinTargetIndex: null,
           showConfetti: false,
           bgMood: "neutral",
         });
-        const { onlineRoomId } = get();
-        if (onlineRoomId) void updateRoomPhase(onlineRoomId, "lobby");
+        if (get().onlineRoomId) get().pushOnlineSync(false);
       },
 
       resetSession: () => {
@@ -1135,6 +1406,9 @@ export const useGameStore = create<GameState>()(
           players: [],
           roomCode: "",
           onlineRoomId: null,
+          onlineHostClientId: null,
+          onlineSeq: 0,
+          spinTargetIndex: null,
           onlineStatus: isSupabaseConfigured() ? "idle" : "offline",
           onlineError: null,
           currentRound: 0,
