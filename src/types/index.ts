@@ -21,7 +21,8 @@ export type Category =
   | "date"
   | "flags"
   | "flirt"
-  | "know";
+  | "know"
+  | "bond";
 
 /** Kategori room biasa (bukan couple) */
 export const GENERAL_CATEGORIES: Category[] = [
@@ -42,6 +43,7 @@ export const COUPLE_CATEGORIES: Category[] = [
   "flags",
   "flirt",
   "know",
+  "bond",
 ];
 
 export const CATEGORY_LABELS: Record<Category, string> = {
@@ -59,6 +61,7 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   flags: "Green & Red Flag",
   flirt: "Flirting / Chat",
   know: "Kenal Crush (Deep)",
+  bond: "Saling Kenal (2 Orang)",
 };
 
 export type Difficulty = "easy" | "medium" | "hard" | "impossible";
@@ -278,7 +281,7 @@ export const MODE_INFO: Record<
   },
   couple: {
     name: "Couple Mode",
-    description: "Crush, kencan, flag, flirt + kenal crush deep",
+    description: "Crush, kencan, flag, flirt, kenal crush & saling kenal",
     icon: "💕",
     color: "#EC4899",
   },

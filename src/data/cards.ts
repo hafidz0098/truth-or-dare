@@ -28,6 +28,13 @@ function coupleCategoryFor(index: number): Category {
 function assignCoupleCategory(text: string, fallbackIndex: number): Category {
   const t = text.toLowerCase();
   if (
+    /saling kenal|berdua|orang di seberang|partner bicara|dua orang|kalian berdua|tukar cerita|buka diri|saling buka|saling percaya|kenalan lebih|lebih dekat|siapa kamu sebenarnya|cerita bareng|tanya balik|giliran dia|orang di depanmu|yang lagi kamu ajak bicara/.test(
+      t
+    )
+  ) {
+    return "bond";
+  }
+  if (
     /mengenal|lebih dalam|nilai hidup|masa kecil|keluarga|mimpi|takut|rahasia|percaya|masa depan|siapa dia|dalam hatimu|emotional|luka|trauma|tumbuh|prioritas hidup|arti cinta|kenangan|impian|kecewa|bahagia|sendiri|kesepian|jati diri|karakter|kepribadian|paling penting|paling rindu|paling bangga|paling takut|apa yang dia|kalau dia tahu|yang jarang orang tahu|soft spot|luka lama|healing|keamanan|rentan|vulnerable/.test(
       t
     )
@@ -247,6 +254,58 @@ const TRUTH_SEEDS: Array<[string, Category, GameMode[], 1 | 2 | 3 | 4 | 5]> = [
   ["Dalam diam, doa / harapan apa yang sering kamu simpan soal crush?", "know", COUPLE_MODES, 3],
   ["Seberapa penting 'ketenangan' vs 'chemistry' buat jangka panjang?", "know", COUPLE_MODES, 3],
   ["Kalau hanya boleh tahu 3 fakta deep tentang crush, apa yang kamu pilih?", "know", COUPLE_MODES, 2],
+
+  // Couple — Saling Kenal (2 orang ingin kenal lebih dalam)
+  ["Ceritakan 1 hal tentang dirimu yang jarang kamu bilang di awal kenal orang.", "bond", COUPLE_MODES, 2],
+  ["Apa yang bikin kamu merasa nyaman buka cerita ke seseorang?", "bond", COUPLE_MODES, 2],
+  ["Kalau orang di depanmu boleh tanya apa saja (sopan), topik apa yang kamu siapkan jawab jujur?", "bond", COUPLE_MODES, 2],
+  ["Satu momen masa kecil yang masih memengaruhi siapa kamu hari ini.", "bond", COUPLE_MODES, 3],
+  ["Apa yang orang sering salah paham tentangmu di awal kenalan?", "bond", COUPLE_MODES, 2],
+  ["Nilai / prinsip hidup yang paling kamu pegang bareng?", "bond", COUPLE_MODES, 3],
+  ["Kapan terakhir kamu ngerasa benar-benar didengar seseorang?", "bond", COUPLE_MODES, 3],
+  ["Kalau harus jelasin 'siapa aku' dalam 3 kata, apa isinya — lalu jelasin 1.", "bond", COUPLE_MODES, 2],
+  ["Takut terbesarmu soal membuka diri ke orang baru?", "bond", COUPLE_MODES, 3],
+  ["Mimpi yang jarang kamu ceritain ke orang random — boleh share di sini.", "bond", COUPLE_MODES, 3],
+  ["Apa yang bikin kamu percaya seseorang layak didekati lebih dalam?", "bond", COUPLE_MODES, 3],
+  ["Ceritakan hari yang mengubah cara pandangmu (singkat, jujur).", "bond", COUPLE_MODES, 3],
+  ["Kalau lagi susah, kamu lebih butuh solusi, pelukan, atau cuma didengar?", "bond", COUPLE_MODES, 2],
+  ["Satu kebiasaan kecil yang bilang banyak tentang kepribadianmu.", "bond", COUPLE_MODES, 1],
+  ["Apa arti 'teman dekat' vs 'orang spesial' bagimu — bedanya di mana?", "bond", COUPLE_MODES, 2],
+  ["Hal yang kamu syukuri tentang dirimu tahun ini?", "bond", COUPLE_MODES, 2],
+  ["Kalau orang di seberangmu ingat 1 hal tentangmu, apa yang kamu harap diingat?", "bond", COUPLE_MODES, 2],
+  ["Pernah jaga jarak padahal ingin lebih dekat? Kenapa?", "bond", COUPLE_MODES, 3],
+  ["Topik deep favorit buat dibahas bareng orang yang lagi kamu kenalin.", "bond", COUPLE_MODES, 2],
+  ["Apa yang bikin kamu ngerasa 'aman' di percakapan berdua?", "bond", COUPLE_MODES, 2],
+  ["Satu luka kecil (boleh ringan) yang membentuk caramu percaya orang.", "bond", COUPLE_MODES, 4],
+  ["Kalau hidup di-reset, apa yang tetap kamu bawa tentang dirimu?", "bond", COUPLE_MODES, 3],
+  ["Bagaimana caramu bilang 'aku butuh waktu' tanpa nutup pintu komunikasi?", "bond", COUPLE_MODES, 3],
+  ["Ceritakan orang yang paling memengaruhi cara kamu merawat hubungan.", "bond", COUPLE_MODES, 3],
+  ["Apa yang kamu pelajari tentang dirimu dari 1 tahun terakhir?", "bond", COUPLE_MODES, 2],
+  ["Kalau harus tukar 1 rahasia ringan bareng orang di depanmu, kesiapanmu 1–10?", "bond", COUPLE_MODES, 2],
+  ["Definisi 'kenal lebih dalam' menurutmu — butuh apa saja?", "bond", COUPLE_MODES, 2],
+  ["Sisi dirimu yang baru muncul kalau sudah nyaman sama orang.", "bond", COUPLE_MODES, 2],
+  ["Apa yang bikin kamu langsung merasa 'klik' sama seseorang?", "bond", COUPLE_MODES, 1],
+  ["Hal sepele yang bikin kamu kehilangan rasa ingin kenal lebih jauh.", "bond", COUPLE_MODES, 2],
+  ["Kalau orang di depanmu tanya mimpi terbesar, apa yang kamu jawab jujur?", "bond", COUPLE_MODES, 2],
+  ["Bagaimana kamu nunjukin ketertarikan untuk kenal lebih — tanpa maksa?", "bond", COUPLE_MODES, 2],
+  ["Satu pertanyaan yang ingin kamu tanyain ke orang di seberangmu malam ini.", "bond", COUPLE_MODES, 2],
+  ["Apa yang kamu butuhkan biar berani lebih jujur di obrolan berdua?", "bond", COUPLE_MODES, 3],
+  ["Ceritakan momen di mana kamu ngerasa 'dilihat' beneran sama seseorang.", "bond", COUPLE_MODES, 3],
+  ["Prioritas hidup top 3-mu sekarang — boleh beda dari dulu?", "bond", COUPLE_MODES, 2],
+  ["Kalau hubungan (apapun) gagal, apa yang tetap kamu hargai dari proses kenalan?", "bond", COUPLE_MODES, 3],
+  ["Soft spot emosional yang jarang kamu buka di chat pertama.", "bond", COUPLE_MODES, 3],
+  ["Bagaimana kamu normally recover setelah awkward di obrolan deep?", "bond", COUPLE_MODES, 2],
+  ["Satu hal yang ingin orang pahami tentang caramu merawat kedekatan.", "bond", COUPLE_MODES, 3],
+  ["Kalau hanya boleh 3 fakta deep tentang dirimu yang dibuka malam ini, apa?", "bond", COUPLE_MODES, 3],
+  ["Apa yang bikin kamu ngerasa percakapan 'berharga', bukan basa-basi?", "bond", COUPLE_MODES, 2],
+  ["Pernah salah baca niat orang yang lagi kenalan? Endingnya gimana?", "bond", COUPLE_MODES, 2],
+  ["Batas pribadi yang tetap kamu jaga meski lagi ingin lebih dekat.", "bond", COUPLE_MODES, 3],
+  ["Kalau orang di depanmu bilang dia ingin kenal lebih dalam, respons idealmu?", "bond", COUPLE_MODES, 2],
+  ["Ceritakan 1 kebanggaan kecil yang jarang kamu pamerin.", "bond", COUPLE_MODES, 1],
+  ["Apa arti 'nyaman berdua' bagimu — diem bareng oke atau harus ngobrol terus?", "bond", COUPLE_MODES, 1],
+  ["Satu topik yang masih sulit kamu buka, tapi ingin suatu hari bisa diceritain.", "bond", COUPLE_MODES, 4],
+  ["Bagaimana kamu jaga rasa hormat sambil tetap jujur di obrolan deep?", "bond", COUPLE_MODES, 2],
+  ["Kalau malam ini kalian berdua cuma boleh 1 pertanyaan deepest, apa yang kamu pilih?", "bond", COUPLE_MODES, 3],
 
   // Friends
   ["Siapa di sini yang paling bisa dipercaya rahasia?", "friends", PARTY_MODES, 2],
@@ -486,6 +545,28 @@ const DARE_SEEDS: Array<[string, Category, GameMode[], Difficulty]> = [
   ["Dalam 20 detik: arti setia bagimu (bukan cuma gak selingkuh).", "know", COUPLE_MODES, "hard"],
   ["Share 1 doa / harapan diam-diam soal crush (tanpa nama kalau perlu).", "know", COUPLE_MODES, "hard"],
 
+  // Couple dares — Saling Kenal (2 orang)
+  ["Sebut 3 fakta tentang dirimu yang jarang dibuka di awal kenalan.", "bond", COUPLE_MODES, "easy"],
+  ["Pilih 1 orang di room: saling tanya 1 pertanyaan deep (giliran 20 dtk).", "bond", COUPLE_MODES, "medium"],
+  ["Ceritakan 30 detik momen masa kecil yang membentukmu.", "bond", COUPLE_MODES, "medium"],
+  ["Tulis 1 pertanyaan deep buat orang di seberangmu — bacakan.", "bond", COUPLE_MODES, "easy"],
+  ["Share 1 hal yang orang sering salah paham tentangmu.", "bond", COUPLE_MODES, "easy"],
+  ["Monolog 20 dtk: 'biar lebih kenal aku, ketahui dulu…'", "bond", COUPLE_MODES, "medium"],
+  ["Sebut 3 tanda kamu sudah nyaman buka diri ke seseorang.", "bond", COUPLE_MODES, "easy"],
+  ["Jawab jujur: 1 takut soal membuka diri ke orang baru.", "bond", COUPLE_MODES, "medium"],
+  ["Deskripsikan 'klik' sama orang dalam 3 kata + jelasin 1.", "bond", COUPLE_MODES, "easy"],
+  ["Tukar (verbal) 1 mimpi yang jarang diceritain ke orang random.", "bond", COUPLE_MODES, "medium"],
+  ["Sebut prioritas hidup top 3-mu sekarang, keras-keras.", "bond", COUPLE_MODES, "easy"],
+  ["Roleplay: ajak orang di depanmu 'kenalan lebih dalam' dengan sopan — 15 dtk.", "bond", COUPLE_MODES, "medium"],
+  ["Share 1 soft spot emosional (ringan) yang jarang di chat pertama.", "bond", COUPLE_MODES, "hard"],
+  ["List 3 topik deep yang oke dibahas berdua malam ini.", "bond", COUPLE_MODES, "easy"],
+  ["Ceritakan momen kamu ngerasa didengar beneran.", "bond", COUPLE_MODES, "medium"],
+  ["Akuin 1 boundary yang tetap kamu jaga meski ingin lebih dekat.", "bond", COUPLE_MODES, "medium"],
+  ["Pilih pemain: bilang 1 hal tulus yang ingin kamu ketahui tentang dia.", "bond", COUPLE_MODES, "medium"],
+  ["Dalam 20 dtk: arti 'nyaman berdua' bagimu.", "bond", COUPLE_MODES, "easy"],
+  ["Share 1 kebanggaan kecil yang jarang dipamerin.", "bond", COUPLE_MODES, "easy"],
+  ["Bacakan 1 pertanyaan deepest yang ingin kamu tanyain ke orang di seberangmu.", "bond", COUPLE_MODES, "hard"],
+
   // Office / school
   ["Presentasikan 'ide bisnis' absurd selama 30 detik.", "office", PARTY_MODES, "medium"],
   ["Buat email formal palsu yang konyol dan bacakan.", "office", PARTY_MODES, "medium"],
@@ -602,6 +683,12 @@ const COUPLE_TRUTH_TOPICS = [
   "rahasia hati",
   "jati diri",
   "kenangan dalam",
+  // Saling kenal 2 orang
+  "saling kenal",
+  "buka diri berdua",
+  "percaya orang baru",
+  "nyaman berdua",
+  "tukar cerita deep",
 ];
 
 const COUPLE_DARE_TEMPLATES: Array<[string, Difficulty]> = [
@@ -799,11 +886,11 @@ export function generateAITruth(mode: GameMode, playerName: string): TruthCard {
   const byMode: Record<GameMode, string[]> = {
     couple: [
       `${playerName}, tipe orang yang bikin kamu naksir itu kayak gimana?`,
-      `${playerName}, green flag nomor satu yang kamu cari di calon?`,
-      `${playerName}, first date ideal kamu kayak apa?`,
       `${playerName}, apa yang paling ingin kamu ketahui tentang crush-mu?`,
-      `${playerName}, nilai hidup mana yang harus cocok sama crush?`,
-      `${playerName}, kalau crush tanya 'kenapa kamu suka aku?', jawabannya?`,
+      `${playerName}, apa yang bikin kamu nyaman buka cerita ke seseorang?`,
+      `${playerName}, 1 hal tentang dirimu yang jarang dibuka di awal kenalan?`,
+      `${playerName}, definisi 'kenal lebih dalam' menurutmu apa?`,
+      `${playerName}, kalau orang di depanmu boleh tanya apa saja, topik apa yang siap kamu jawab jujur?`,
     ],
     family: [
       `${playerName}, tradisi keluarga favoritmu apa?`,
