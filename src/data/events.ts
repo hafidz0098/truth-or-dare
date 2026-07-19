@@ -1,4 +1,4 @@
-import type { ChaosEventType, MiniGameType } from "@/types";
+import type { ChaosEventType } from "@/types";
 
 export const CHAOS_EVENTS: Record<
   ChaosEventType,
@@ -122,96 +122,6 @@ export const RANDOM_ROUND_EVENTS = [
     icon: "🃏",
   },
 ];
-
-export const MINI_GAMES: Record<
-  MiniGameType,
-  { name: string; description: string; icon: string; duration: number }
-> = {
-  rps: {
-    name: "Rock Paper Scissors",
-    description: "Batu-gunting-kertas lawan lawan acak!",
-    icon: "✊",
-    duration: 15,
-  },
-  memory: {
-    name: "Memory Card",
-    description: "Cocokkan pasangan kartu secepat mungkin",
-    icon: "🃏",
-    duration: 45,
-  },
-  "quick-tap": {
-    name: "Quick Tap",
-    description: "Tap secepat mungkin dalam 5 detik!",
-    icon: "👆",
-    duration: 8,
-  },
-  reaction: {
-    name: "Reaction Test",
-    description: "Tap saat warna berubah!",
-    icon: "⚡",
-    duration: 10,
-  },
-  "guess-number": {
-    name: "Guess Number",
-    description: "Tebak angka 1-20",
-    icon: "🔢",
-    duration: 20,
-  },
-  "emoji-quiz": {
-    name: "Emoji Quiz",
-    description: "Tebak arti dari rangkaian emoji",
-    icon: "😎",
-    duration: 25,
-  },
-  "spin-bottle": {
-    name: "Spin Bottle",
-    description: "Botol virtual menunjuk pemain",
-    icon: "🍾",
-    duration: 12,
-  },
-  "coin-flip": {
-    name: "Coin Flip",
-    description: "Kepala atau ekor?",
-    icon: "🪙",
-    duration: 8,
-  },
-  "dice-roll": {
-    name: "Dice Roll",
-    description: "Lempar dadu, angka tertinggi menang",
-    icon: "🎲",
-    duration: 10,
-  },
-  "lucky-wheel": {
-    name: "Wheel Lucky",
-    description: "Putar roda hadiah mini",
-    icon: "🎡",
-    duration: 15,
-  },
-  trivia: {
-    name: "Trivia Quiz",
-    description: "Pertanyaan kilat umum",
-    icon: "🧠",
-    duration: 20,
-  },
-  "color-match": {
-    name: "Color Match",
-    description: "Tap warna yang benar!",
-    icon: "🎨",
-    duration: 12,
-  },
-  simon: {
-    name: "Simon Says",
-    description: "Ikuti pola warna",
-    icon: "🔴",
-    duration: 30,
-  },
-  "math-battle": {
-    name: "Math Battle",
-    description: "Hitung cepat!",
-    icon: "➕",
-    duration: 15,
-  },
-};
 
 export const PUNISHMENTS = [
   "Nyanyi lagu anak-anak dengan gaya rock!",

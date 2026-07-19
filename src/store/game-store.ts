@@ -11,7 +11,6 @@ import {
 import { generateDailyMissions } from "@/data/achievements";
 import {
   CHAOS_EVENTS,
-  MINI_GAMES,
   MYSTERY_BOX_REWARDS,
   PUNISHMENTS,
   RANDOM_ROUND_EVENTS,
@@ -54,7 +53,6 @@ import type {
   GamePhase,
   GameSettings,
   Highlight,
-  MiniGameType,
   Player,
   PowerCardType,
   ProfileStats,
@@ -73,7 +71,6 @@ const DEFAULT_SETTINGS: GameSettings = {
   customTruths: [],
   customDares: [],
   enableVoting: true,
-  enableMiniGames: true,
   enableEvents: true,
   enablePowerCards: true,
   adultContent: false,
@@ -153,7 +150,6 @@ interface GameState {
   } | null;
   activeEvent: ChaosEventType | null;
   activeRoundEvent: (typeof RANDOM_ROUND_EVENTS)[0] | null;
-  activeMiniGame: MiniGameType | null;
   hostMessage: string;
   hostMood: string;
   voting: { yes: number; no: number; open: boolean };
@@ -192,8 +188,6 @@ interface GameState {
   usePowerCard: (playerId: string, power: PowerCardType) => void;
   triggerRandomEvent: () => void;
   clearEvent: () => void;
-  startMiniGame: (type?: MiniGameType) => void;
-  finishMiniGame: (winnerId?: string) => void;
   openMystery: () => void;
   clearMystery: () => void;
   nextTurn: () => void;
@@ -245,7 +239,6 @@ function buildOnlineSnapshot(s: GameState): OnlineGameSnapshot {
           icon: s.activeRoundEvent.icon,
         }
       : null,
-    activeMiniGame: s.activeMiniGame,
     mysteryResult: s.mysteryResult
       ? ({
           type: s.mysteryResult.type,
@@ -303,7 +296,6 @@ export const useGameStore = create<GameState>()(
       lastCard: null,
       activeEvent: null,
       activeRoundEvent: null,
-      activeMiniGame: null,
       hostMessage: "Siap-siap party! 🔥",
       hostMood: "happy",
       voting: { yes: 0, no: 0, open: false },
@@ -504,7 +496,6 @@ export const useGameStore = create<GameState>()(
           "choose",
           "reveal",
           "voting",
-          "minigame",
           "event",
           "mystery",
           "result",
@@ -564,7 +555,6 @@ export const useGameStore = create<GameState>()(
           patch.voting = gs.voting;
           patch.activeEvent = gs.activeEvent;
           patch.activeRoundEvent = gs.activeRoundEvent as GameState["activeRoundEvent"];
-          patch.activeMiniGame = gs.activeMiniGame;
           patch.mysteryResult = gs.mysteryResult as GameState["mysteryResult"];
           patch.highlights = gs.highlights ?? [];
           patch.bgMood = gs.bgMood;
@@ -1003,16 +993,7 @@ export const useGameStore = create<GameState>()(
           return;
         }
 
-        // maybe mini game / event / mystery
-        if (
-          settings.enableMiniGames &&
-          currentRound % randomInt(3, 5) === 0 &&
-          chance(45)
-        ) {
-          get().startMiniGame();
-          return;
-        }
-
+        // maybe event / mystery
         if (settings.enableEvents && currentRound % randomInt(2, 5) === 0 && chance(50)) {
           get().triggerRandomEvent();
           return;
@@ -1193,28 +1174,6 @@ export const useGameStore = create<GameState>()(
         }
       },
 
-      startMiniGame: (type) => {
-        const t = type || pick(Object.keys(MINI_GAMES) as MiniGameType[]);
-        set({ activeMiniGame: t, phase: "minigame", bgMood: "party" });
-        if (get().onlineRoomId) get().pushOnlineSync(false);
-      },
-
-      finishMiniGame: (winnerId) => {
-        if (winnerId) {
-          set((s) => ({
-            players: s.players.map((p) =>
-              p.id === winnerId
-                ? { ...p, xp: p.xp + 40, coins: p.coins + 20 }
-                : p
-            ),
-            showConfetti: true,
-          }));
-        }
-        set({ activeMiniGame: null });
-        if (get().currentRound >= get().settings.rounds) get().endGame();
-        else get().nextTurn();
-      },
-
       openMystery: () => {
         const reward = pick(MYSTERY_BOX_REWARDS);
         const i = get().currentPlayerIndex;
@@ -1389,7 +1348,6 @@ export const useGameStore = create<GameState>()(
           currentRound: 0,
           lastCard: null,
           activeEvent: null,
-          activeMiniGame: null,
           mysteryResult: null,
           spinTargetIndex: null,
           showConfetti: false,

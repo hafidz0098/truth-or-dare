@@ -138,14 +138,6 @@ export const ACHIEVEMENTS: Achievement[] = [
     condition: "events>=5",
   },
   {
-    id: "minigame_champ",
-    name: "Minigame Champ",
-    description: "Menang 10 mini game",
-    icon: "🎮",
-    rarity: "epic",
-    condition: "minigames>=10",
-  },
-  {
     id: "night_owl",
     name: "Night Owl",
     description: "Main lewat tengah malam",

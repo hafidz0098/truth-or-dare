@@ -294,7 +294,7 @@ export function LandingPage() {
           <li>3. Putar roda 3D — siapa yang kena?</li>
           <li>4. Pilih Truth atau Dare (atau Risk vs Reward!).</li>
           <li>5. Selesaikan challenge, kumpulkan XP & combo.</li>
-          <li>6. Event acak, mini game, mystery box biar gak boring!</li>
+          <li>6. Event acak & mystery box biar gak boring!</li>
           <li>7. Akhir sesi: highlights + MVP party 👑</li>
         </ol>
         <Button className="mt-5" fullWidth onClick={() => setPanel(null)}>
@@ -362,14 +362,6 @@ export function LandingPage() {
               type="checkbox"
               checked={settings.enableVoting}
               onChange={(e) => updateSettings({ enableVoting: e.target.checked })}
-            />
-          </label>
-          <label className="flex items-center justify-between">
-            <span>Mini Games</span>
-            <input
-              type="checkbox"
-              checked={settings.enableMiniGames}
-              onChange={(e) => updateSettings({ enableMiniGames: e.target.checked })}
             />
           </label>
           <label className="flex items-center justify-between">

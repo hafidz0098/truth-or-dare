@@ -29,7 +29,6 @@ export type GamePhase =
   | "choose"
   | "reveal"
   | "voting"
-  | "minigame"
   | "event"
   | "mystery"
   | "result"
@@ -55,22 +54,6 @@ export type ChaosEventType =
   | "random-punishment"
   | "lucky-bonus"
   | "mystery-card";
-
-export type MiniGameType =
-  | "rps"
-  | "memory"
-  | "quick-tap"
-  | "reaction"
-  | "guess-number"
-  | "emoji-quiz"
-  | "spin-bottle"
-  | "coin-flip"
-  | "dice-roll"
-  | "lucky-wheel"
-  | "trivia"
-  | "color-match"
-  | "simon"
-  | "math-battle";
 
 export type AvatarColor =
   | "purple"
@@ -154,7 +137,6 @@ export interface GameSettings {
   customTruths: string[];
   customDares: string[];
   enableVoting: boolean;
-  enableMiniGames: boolean;
   enableEvents: boolean;
   enablePowerCards: boolean;
   adultContent: boolean;
@@ -178,7 +160,6 @@ export interface Room {
   usedDareIds: string[];
   history: RoundHistory[];
   activeEvent?: ChaosEventType;
-  activeMiniGame?: MiniGameType;
   lastCard?: { type: CardType; text: string; difficulty?: Difficulty };
 }
 
@@ -253,7 +234,7 @@ export const MODE_INFO: Record<
   },
   couple: {
     name: "Couple Mode",
-    description: "Lebih personal: perasaan, diri sendiri, sisi soft-mu",
+    description: "Crush, dating, first vibe — buat yang mau couplean",
     icon: "💕",
     color: "#EC4899",
   },

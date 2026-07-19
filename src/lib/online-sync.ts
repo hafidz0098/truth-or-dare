@@ -5,7 +5,6 @@ import type {
   GamePhase,
   GameSettings,
   Highlight,
-  MiniGameType,
 } from "@/types";
 
 /** Shared multiplayer snapshot stored in rooms.game_state */
@@ -38,7 +37,6 @@ export type OnlineGameSnapshot = {
     description: string;
     icon?: string;
   } | null;
-  activeMiniGame: MiniGameType | null;
   mysteryResult: {
     type: string;
     label: string;

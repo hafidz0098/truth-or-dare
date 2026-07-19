@@ -1,6 +1,6 @@
 # Truth or Dare Party 🃏
 
-Premium multiplayer-ready **Truth or Dare** web game — modern card-game UI, Three.js backgrounds, 3D wheel, mini games, chaos events, AI host, XP/achievements, and PWA support.
+Premium multiplayer-ready **Truth or Dare** web game — modern card-game UI, Three.js backgrounds, 3D wheel, chaos events, AI host, XP/achievements, and PWA support.
 
 ## Stack
 
@@ -55,11 +55,11 @@ Lihat juga `.env.example`.
 |------|------------|
 | Landing | Logo animasi, Play, Create/Join Room, Quick Play, How To, Settings, Daily, Leaderboard, Achievements, Profile |
 | Lobby | 2–20 players, avatar circle, edit name/color, custom room, categories, custom truths/dares |
-| Modes | Classic, Party, Couple, Family, Extreme, Random Chaos |
+| Modes | Classic, Party, Couple (dating/crush), Family, Extreme, Random Chaos |
 | Wheel | 3D spinning wheel (R3F), confetti, highlight winner |
 | Cards | Cinematic Truth / Dare select, flip reveal, risk vs reward, power cards |
 | Content | 1000+ generated truths & dares + AI fallback generator |
-| Systems | Combo, mystery box, random events, voting, mini games, highlights/MVP |
+| Systems | Combo, mystery box, random events, voting, highlights/MVP |
 | UX | Mobile-first, reduce motion, volume, dark theme, skeleton-ready CSS |
 | Multiplayer | Local party + WebSocket client stub for realtime scale-out |
 

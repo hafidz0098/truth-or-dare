@@ -5,7 +5,6 @@ import { useGameStore } from "@/store/game-store";
 import { Wheel3D } from "./Wheel3D";
 import { TruthDareSelect } from "./TruthDareSelect";
 import { CardReveal } from "./CardReveal";
-import { MiniGame } from "./MiniGame";
 import { EventOverlay } from "./EventOverlay";
 import { MysteryBox } from "./MysteryBox";
 import { Highlights } from "./Highlights";
@@ -74,7 +73,6 @@ export function GameShell() {
           {phase === "choose" && <TruthDareSelect />}
           {phase === "reveal" && <CardReveal />}
           {phase === "voting" && <Voting />}
-          {phase === "minigame" && <MiniGame />}
           {phase === "event" && <EventOverlay />}
           {phase === "mystery" && <MysteryBox />}
           {phase === "highlights" && <Highlights />}
