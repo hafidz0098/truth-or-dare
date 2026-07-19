@@ -60,8 +60,8 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   date: "Kencan / Date",
   flags: "Green & Red Flag",
   flirt: "Flirting / Chat",
-  know: "Kenal Crush (Deep)",
-  bond: "Saling Kenal (2 Orang)",
+  know: "Kenal Crush",
+  bond: "Saling Kenal",
 };
 
 export type Difficulty = "easy" | "medium" | "hard" | "impossible";
