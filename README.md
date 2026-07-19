@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Truth or Dare Party 🃏
 
-## Getting Started
+Premium multiplayer-ready **Truth or Dare** web game — modern card-game UI, Three.js backgrounds, 3D wheel, mini games, chaos events, AI host, XP/achievements, and PWA support.
 
-First, run the development server:
+## Stack
+
+- **Next.js 15+** (App Router) + **TypeScript**
+- **Tailwind CSS** v4
+- **Framer Motion** + **GSAP-ready** patterns
+- **Three.js** + **React Three Fiber** + Drei
+- **Zustand** (persisted profile / settings)
+- **Web Audio** procedural SFX (Howler-compatible architecture)
+- **PWA** (manifest + service worker)
+- **WebSocket client** ready (`NEXT_PUBLIC_WS_URL`)
+
+## Run
 
 ```bash
+cd truth-or-dare
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Supabase setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Buat project di [supabase.com](https://supabase.com)
+2. **SQL Editor** → paste & run isi file `supabase/schema.sql`
+3. **Project Settings → API** → salin URL + `anon` key
+4. Buat file `.env.local`:
 
-## Learn More
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
+```
 
-To learn more about Next.js, take a look at the following resources:
+5. Restart `npm run dev`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Tanpa env, game tetap jalan **mode lokal**. Dengan env:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Fitur | Supabase |
+|--------|----------|
+| Create / Join Room | `rooms` + `room_players` |
+| Realtime player list | Realtime on `room_players` |
+| Chat antar device | `chat_messages` |
+| Leaderboard | `leaderboard_entries` |
+| Profile | `profiles` (guest `client_id`) |
 
-## Deploy on Vercel
+Lihat juga `.env.example`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Features
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Area | Highlights |
+|------|------------|
+| Landing | Logo animasi, Play, Create/Join Room, Quick Play, How To, Settings, Daily, Leaderboard, Achievements, Profile |
+| Lobby | 2–20 players, avatar circle, edit name/color, custom room, categories, custom truths/dares |
+| Modes | Classic, Party, Couple, Family, Extreme, Random Chaos |
+| Wheel | 3D spinning wheel (R3F), confetti, highlight winner |
+| Cards | Cinematic Truth / Dare select, flip reveal, risk vs reward, power cards |
+| Content | 1000+ generated truths & dares + AI fallback generator |
+| Systems | Combo, mystery box, random events, voting, mini games, highlights/MVP |
+| UX | Mobile-first, reduce motion, volume, dark theme, skeleton-ready CSS |
+| Multiplayer | Local party + WebSocket client stub for realtime scale-out |
+
+## Scripts
+
+- `npm run dev` — development
+- `npm run build` — production build
+- `npm run start` — start production server
+
+## Optional online multiplayer
+
+Set:
+
+```env
+NEXT_PUBLIC_WS_URL=wss://your-realtime-server.example
+```
+
+Then wire server messages to `src/lib/multiplayer.ts`.
+
+## License
+
+MIT — buat party, jangan bikin malu di group chat 🎉
