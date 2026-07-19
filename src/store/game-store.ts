@@ -58,7 +58,7 @@ import type {
   ProfileStats,
   RoundHistory,
 } from "@/types";
-import { AVATAR_EMOJIS } from "@/types";
+import { AVATAR_EMOJIS, COUPLE_CATEGORIES, GENERAL_CATEGORIES } from "@/types";
 
 const DEFAULT_SETTINGS: GameSettings = {
   mode: "classic",
@@ -694,16 +694,32 @@ export const useGameStore = create<GameState>()(
       },
 
       setMode: (mode) => {
-        set((s) => ({
-          settings: {
-            ...s.settings,
-            mode,
-            adultContent: mode === "extreme" ? s.settings.adultContent : false,
-          },
-          phase: s.onlineRoomId ? "mode-select" : s.phase,
-          bgMood:
-            mode === "chaos" ? "chaos" : mode === "party" ? "party" : "neutral",
-        }));
+        set((s) => {
+          // Saat ganti mode, jaga filter kategori tetap di jalur yang benar
+          let cats = s.settings.categories;
+          if (mode === "couple") {
+            cats = cats.filter((c) => COUPLE_CATEGORIES.includes(c));
+          } else {
+            cats = cats.filter((c) => GENERAL_CATEGORIES.includes(c));
+          }
+          return {
+            settings: {
+              ...s.settings,
+              mode,
+              categories: cats,
+              adultContent: mode === "extreme" ? s.settings.adultContent : false,
+            },
+            phase: s.onlineRoomId ? "mode-select" : s.phase,
+            bgMood:
+              mode === "chaos"
+                ? "chaos"
+                : mode === "party"
+                  ? "party"
+                  : mode === "couple"
+                    ? "party"
+                    : "neutral",
+          };
+        });
         speak(set, "intro", { mode });
         if (get().onlineRoomId) {
           get().pushOnlineSync(false);

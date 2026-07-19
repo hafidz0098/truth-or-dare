@@ -1,4 +1,5 @@
 import type { Category, DareCard, Difficulty, GameMode, TruthCard } from "@/types";
+import { COUPLE_CATEGORIES } from "@/types";
 
 /** Generic modes — tidak termasuk couple/family agar konten spesifik mode tidak "bocor" */
 const ALL_MODES: GameMode[] = ["classic", "party", "extreme", "chaos"];
@@ -12,11 +13,50 @@ const EXTREME_MODES: GameMode[] = ["extreme", "chaos", "party"];
 const MODE_CATEGORIES: Record<GameMode, Category[] | null> = {
   classic: ["funny", "friends", "school", "office", "deep", "romance", "random", "family"],
   party: ["funny", "friends", "school", "office", "random", "romance"],
-  couple: ["romance"],
+  // Couple: sub-kategori sendiri — tidak pakai school/office/dll
+  couple: [...COUPLE_CATEGORIES],
   family: ["family", "funny", "friends", "school", "random"],
   extreme: ["deep", "adult", "romance", "friends", "funny", "random"],
   chaos: null, // campur semua (kecuali adult tanpa flag)
 };
+
+function coupleCategoryFor(index: number): Category {
+  return COUPLE_CATEGORIES[index % COUPLE_CATEGORIES.length];
+}
+
+/** Map legacy "romance" couple seeds → sub-kategori couple */
+function assignCoupleCategory(text: string, fallbackIndex: number): Category {
+  const t = text.toLowerCase();
+  if (
+    /green flag|red flag|dealbreaker|ghosting|mundur|toxic|boundary|serius|husband|wife material/.test(
+      t
+    )
+  ) {
+    return "flags";
+  }
+  if (
+    /kencan|first date|date|hangout|nonton bareng|split|bayar|jemput|cafe|restoran|outfit|film|budget|plan.*kencan|menu/.test(
+      t
+    )
+  ) {
+    return "date";
+  }
+  if (
+    /chat|flirt|ig|nomor|sticker|emoji|good morning|opening|pickup|bales|voice|story|text|pujian|compliment|wingman/.test(
+      t
+    )
+  ) {
+    return "flirt";
+  }
+  if (
+    /crush|naksir|friendzone|suka|ketertarikan|tembak|confess|pdkt|tanda|pure-pure|simpan chat|ditolak|nolak/.test(
+      t
+    )
+  ) {
+    return "crush";
+  }
+  return coupleCategoryFor(fallbackIndex);
+}
 
 function t(
   id: string,
@@ -486,16 +526,23 @@ const COUPLE_DARE_TEMPLATES: Array<[string, Difficulty]> = [
 function expandTruths(): TruthCard[] {
   const cards: TruthCard[] = [];
   TRUTH_SEEDS.forEach((seed, i) => {
-    cards.push(t(`truth_seed_${i}`, seed[0], seed[1], seed[2], seed[3]));
+    let category = seed[1];
+    const modes = seed[2];
+    // Pure couple-only seeds → sub-kategori couple (jaga "romance" multi-mode biar classic tetap jalan)
+    if (modes.length === 1 && modes[0] === "couple" && category === "romance") {
+      category = assignCoupleCategory(seed[0], i);
+    }
+    cards.push(t(`truth_seed_${i}`, seed[0], category, modes, seed[3]));
   });
 
-  // Couple-only bulk
+  // Couple-only bulk — sub-kategori couple
   let cIdx = 0;
   for (const tmpl of COUPLE_TRUTH_TEMPLATES) {
     for (const topic of COUPLE_TRUTH_TOPICS) {
       const text = tmpl.replace("{x}", topic);
       const intensity = ((cIdx % 4) + 1) as 1 | 2 | 3 | 4 | 5;
-      cards.push(t(`truth_couple_${cIdx}`, text, "romance", COUPLE_MODES, intensity));
+      const category = assignCoupleCategory(text, cIdx);
+      cards.push(t(`truth_couple_${cIdx}`, text, category, COUPLE_MODES, intensity));
       cIdx++;
     }
   }
@@ -535,14 +582,20 @@ function expandTruths(): TruthCard[] {
 function expandDares(): DareCard[] {
   const cards: DareCard[] = [];
   DARE_SEEDS.forEach((seed, i) => {
-    cards.push(d(`dare_seed_${i}`, seed[0], seed[1], seed[2], seed[3]));
+    let category = seed[1];
+    const modes = seed[2];
+    if (modes.length === 1 && modes[0] === "couple" && category === "romance") {
+      category = assignCoupleCategory(seed[0], i);
+    }
+    cards.push(d(`dare_seed_${i}`, seed[0], category, modes, seed[3]));
   });
 
   let cIdx = 0;
   for (const [tmpl, diff] of COUPLE_DARE_TEMPLATES) {
     for (const topic of COUPLE_TRUTH_TOPICS) {
       const text = tmpl.replace("{x}", topic);
-      cards.push(d(`dare_couple_${cIdx}`, text, "romance", COUPLE_MODES, diff));
+      const category = assignCoupleCategory(text, cIdx);
+      cards.push(d(`dare_couple_${cIdx}`, text, category, COUPLE_MODES, diff));
       cIdx++;
     }
   }
@@ -584,12 +637,31 @@ function matchesModeCategories(
   mode: GameMode,
   userCategories: Category[]
 ): boolean {
-  // Couple Mode: konten personal (romance) — tidak tercampur sekolah/kantor/dll
-  if (mode === "couple") return category === "romance";
+  // Couple Mode: hanya sub-kategori couple (pisah dari funny/school/office/dll)
+  if (mode === "couple") {
+    const isCoupleCat =
+      COUPLE_CATEGORIES.includes(category) || category === "romance"; // romance = fallback legacy
+    if (!isCoupleCat) return false;
+    // User filter hanya berlaku untuk sub-kategori couple yang dipilih
+    const coupleSelected = userCategories.filter((c) =>
+      COUPLE_CATEGORIES.includes(c)
+    );
+    if (coupleSelected.length > 0) {
+      return coupleSelected.includes(category);
+    }
+    return true; // semua sub-kategori couple
+  }
 
-  // Filter kategori custom room (kecuali couple di atas)
+  // Mode lain: jangan campur sub-kategori couple
+  if (COUPLE_CATEGORIES.includes(category)) return false;
+
+  // Filter kategori custom room
   if (userCategories.length > 0) {
-    return userCategories.includes(category) || category === "random";
+    const generalSelected = userCategories.filter(
+      (c) => !COUPLE_CATEGORIES.includes(c)
+    );
+    if (generalSelected.length === 0) return true;
+    return generalSelected.includes(category) || category === "random";
   }
 
   const allowed = MODE_CATEGORIES[mode];
@@ -669,7 +741,11 @@ export function generateAITruth(mode: GameMode, playerName: string): TruthCard {
   };
   const prompts = byMode[mode] ?? byMode.classic;
   const category: Category =
-    mode === "couple" ? "romance" : mode === "family" ? "family" : "random";
+    mode === "couple"
+      ? coupleCategoryFor(Math.floor(Math.random() * 10))
+      : mode === "family"
+        ? "family"
+        : "random";
   return t(
     `ai_truth_${Date.now()}`,
     prompts[Math.floor(Math.random() * prompts.length)],
@@ -757,7 +833,11 @@ export function generateAIDare(
     mode === "couple" ? couple : mode === "family" ? family : generic;
   const list = prompts[difficulty];
   const category: Category =
-    mode === "couple" ? "romance" : mode === "family" ? "family" : "random";
+    mode === "couple"
+      ? coupleCategoryFor(Math.floor(Math.random() * 10))
+      : mode === "family"
+        ? "family"
+        : "random";
   return d(
     `ai_dare_${Date.now()}`,
     list[Math.floor(Math.random() * list.length)],

@@ -15,7 +15,48 @@ export type Category =
   | "deep"
   | "adult"
   | "family"
-  | "random";
+  | "random"
+  /** Couple mode only — dipisah dari kategori umum */
+  | "crush"
+  | "date"
+  | "flags"
+  | "flirt";
+
+/** Kategori room biasa (bukan couple) */
+export const GENERAL_CATEGORIES: Category[] = [
+  "funny",
+  "romance",
+  "friends",
+  "school",
+  "office",
+  "deep",
+  "family",
+  "random",
+];
+
+/** Sub-kategori khusus Couple Mode (pisah dari kategori umum) */
+export const COUPLE_CATEGORIES: Category[] = [
+  "crush",
+  "date",
+  "flags",
+  "flirt",
+];
+
+export const CATEGORY_LABELS: Record<Category, string> = {
+  funny: "Funny",
+  romance: "Romance",
+  friends: "Friends",
+  school: "School",
+  office: "Office",
+  deep: "Deep",
+  adult: "Adult",
+  family: "Family",
+  random: "Random",
+  crush: "Crush / Naksir",
+  date: "Kencan / Date",
+  flags: "Green & Red Flag",
+  flirt: "Flirting / Chat",
+};
 
 export type Difficulty = "easy" | "medium" | "hard" | "impossible";
 
@@ -234,7 +275,7 @@ export const MODE_INFO: Record<
   },
   couple: {
     name: "Couple Mode",
-    description: "Crush, dating, first vibe — buat yang mau couplean",
+    description: "Kategori sendiri: crush, kencan, flag, flirting",
     icon: "💕",
     color: "#EC4899",
   },

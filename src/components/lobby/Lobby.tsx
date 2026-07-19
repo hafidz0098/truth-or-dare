@@ -10,6 +10,9 @@ import {
   AVATAR_COLORS,
   AVATAR_EMOJIS,
   MODE_INFO,
+  GENERAL_CATEGORIES,
+  COUPLE_CATEGORIES,
+  CATEGORY_LABELS,
   type AvatarColor,
   type GameMode,
   type Category,
@@ -57,16 +60,11 @@ export function Lobby() {
   }, [players]);
 
   const modes = Object.keys(MODE_INFO) as GameMode[];
-  const categories: Category[] = [
-    "funny",
-    "romance",
-    "friends",
-    "school",
-    "office",
-    "deep",
-    "family",
-    "random",
-  ];
+  const isCoupleMode = settings.mode === "couple";
+  // Kategori couple dipisah total dari kategori umum
+  const categories: Category[] = isCoupleMode
+    ? COUPLE_CATEGORIES
+    : GENERAL_CATEGORIES;
 
   if (phase === "mode-select") {
     return (
@@ -94,6 +92,41 @@ export function Lobby() {
             );
           })}
         </div>
+        {settings.mode === "couple" && (
+          <div className="rounded-2xl border border-pink-400/20 bg-pink-500/10 p-4">
+            <p className="mb-2 text-center text-xs font-bold uppercase tracking-wide text-pink-200/80">
+              Kategori Couple (pisah dari mode lain)
+            </p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {COUPLE_CATEGORIES.map((c) => {
+                const on = settings.categories.includes(c);
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => {
+                      const next = on
+                        ? settings.categories.filter((x) => x !== c)
+                        : [...settings.categories, c];
+                      updateSettings({ categories: next });
+                    }}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+                      on
+                        ? "bg-pink-500 text-white"
+                        : "bg-slate-900/80 text-white/60"
+                    }`}
+                  >
+                    {CATEGORY_LABELS[c]}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-center text-[10px] text-white/40">
+              Kosong = semua kategori couple
+            </p>
+          </div>
+        )}
+
         <div className="flex flex-wrap justify-center gap-3">
           {isHost ? (
             <Button
@@ -351,7 +384,16 @@ export function Lobby() {
             />
           </label>
           <div>
-            <p className="mb-1 text-xs text-white/50">Kategori</p>
+            <p className="mb-1 text-xs text-white/50">
+              {isCoupleMode
+                ? "Kategori Couple (pisah dari mode lain)"
+                : "Kategori umum"}
+            </p>
+            <p className="mb-2 text-[10px] text-white/35">
+              {isCoupleMode
+                ? "Crush · Kencan · Flag · Flirting — kosong = semua"
+                : "School/office/dll tidak masuk Couple Mode"}
+            </p>
             <div className="flex flex-wrap gap-1">
               {categories.map((c) => {
                 const on = settings.categories.includes(c);
@@ -366,10 +408,14 @@ export function Lobby() {
                       updateSettings({ categories: next });
                     }}
                     className={`rounded-full px-2 py-1 text-xs ${
-                      on ? "bg-violet-600 text-white" : "bg-slate-900 text-white/60"
+                      on
+                        ? isCoupleMode
+                          ? "bg-pink-600 text-white"
+                          : "bg-violet-600 text-white"
+                        : "bg-slate-900 text-white/60"
                     }`}
                   >
-                    {c}
+                    {CATEGORY_LABELS[c]}
                   </button>
                 );
               })}
