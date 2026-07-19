@@ -627,77 +627,132 @@ const DARE_TEMPLATES: Array<[string, Difficulty]> = [
   ["Buat challenge berantai: setiap orang +1 detail soal {subj}.", "impossible"],
 ];
 
-/** Generator Couple Mode — bahasa gampang */
-const COUPLE_TRUTH_TEMPLATES = [
-  "Jujur: soal {x}, kamu ketat atau santai?",
-  "Pas deketin orang, {x} seberapa penting?",
-  "Pernah kecewa karena {x}? Cerita dikit.",
-  "Sifat baik soal {x} yang bikin kamu makin suka?",
-  "Sifat jelek soal {x} yang bikin kamu mundur?",
-  "Pas kencan pertama, kamu bahas {x} atau diem dulu?",
-  "Kamu maunya {x} di pacar / crush kayak gimana?",
-  "1 hal soal {x} yang jarang kamu akui pas naksir?",
-  "Kalau crush bagus di {x}, naik level gak?",
-  "Saran buat orang yang bingung soal {x}?",
+/**
+ * Pertanyaan couple utuh (bukan template+topik).
+ * Template "soal {x}, ketat/santai" bikin kalimat aneh kayak "soal musik bareng".
+ */
+const COUPLE_BULK_TRUTHS: Array<[string, Category, 1 | 2 | 3 | 4 | 5]> = [
+  // crush / dating simple
+  ["Kamu lebih suka chat tiap hari, atau chat pas ada perlu aja?", "flirt", 1],
+  ["Kalau orang bales chat lama, kamu nunggu atau chat lagi?", "flirt", 1],
+  ["Kencan pertama: kamu yang ajak, atau nunggu diajak?", "date", 1],
+  ["Lebih suka ketemu di cafe, taman, atau makan aja?", "date", 1],
+  ["Pernah takut nembak orang? Kenapa?", "crush", 2],
+  ["Pernah cuma dianggap temen padahal kamu suka?", "crush", 2],
+  ["Kamu gampang cemburu gak?", "flags", 2],
+  ["Boleh ngomongin mantan di kencan, atau gak boleh?", "flags", 2],
+  ["Sering cek medsos crush, atau males?", "flirt", 1],
+  ["Dia sering liat story kamu — seneng atau biasa aja?", "flirt", 1],
+  ["Gombalan manis atau yang lucu — mana yang kamu suka?", "flirt", 1],
+  ["Pujian yang bikin kamu senyum seharian kayak apa?", "flirt", 1],
+  ["Kencan murah tapi enak: ide kamu apa?", "date", 1],
+  ["Pas kencan, lebih suka patungan atau yang bayar satu orang?", "date", 2],
+  ["Mau dijemput, atau ketemu di tempat?", "date", 1],
+  ["Video call tiba-tiba: panik atau senang?", "flirt", 1],
+  ["Lebih suka voice note atau chat biasa?", "flirt", 1],
+  ["Chat 'selamat pagi' tiap hari: suka atau males?", "flirt", 1],
+  ["Suka deketin orang pelan-pelan, atau langsung jujur?", "crush", 1],
+  ["Orang yang terlalu manis di awal — waspada atau senang?", "flags", 2],
+  ["Dia hilang berhari-hari tanpa kabar — kamu ngapain?", "flags", 2],
+  ["Status 'temenan aja' tapi sering chat: oke atau bingung?", "flags", 2],
+  ["Kapan kamu mau bilang 'kita pacaran' secara resmi?", "flags", 2],
+  ["Dia ajak kenalan keluarga cepet — senang atau kaget?", "date", 2],
+  ["Pacaran jauh: bisa, atau harus deket?", "date", 2],
+  ["Hobi bareng penting gak buat kamu?", "date", 1],
+  ["Dengerin musik bareng: kamu yang pilih lagu, atau terserah dia?", "date", 1],
+  ["Nonton bareng: film lucu, sedih, atau horor?", "date", 1],
+  ["Penampilan orang seberapa penting buat kamu?", "flags", 1],
+  ["Orang yang bisa bikin ketawa — naik poin gak?", "crush", 1],
+  // know / deep simple
+  ["Aturan hidup apa yang gak boleh dilanggar pacar / crush?", "know", 3],
+  ["Cerita 1 hal dari masa kecil yang masih nempel.", "know", 2],
+  ["Mimpi besar kamu 5 tahun lagi apa?", "know", 2],
+  ["Takut apa kalau mulai pacaran serius?", "know", 3],
+  ["Pernah sakit hati parah? Pelajaran buat kamu apa?", "know", 3],
+  ["Setia buat kamu artinya apa, dengan kata gampang?", "know", 3],
+  ["Gampang percaya orang baru, atau perlu waktu lama?", "know", 2],
+  ["Ada rahasia kecil yang jarang kamu ceritain ke orang?", "know", 3],
+  ["Pas lagi naksir, kamu masih jadi diri sendiri gak?", "know", 2],
+  ["Kenangan kecil yang bikin kamu yakin suka seseorang?", "know", 2],
+  // bond / saling kenal simple
+  ["Apa yang bikin kamu mau kenalan lebih dalam sama orang?", "bond", 2],
+  ["Gampang cerita hal pribadi, atau susah?", "bond", 2],
+  ["Orang baru: kamu percaya dulu, atau hati-hati dulu?", "bond", 2],
+  ["Nyaman berdua: diem bareng oke, atau harus ngobrol terus?", "bond", 1],
+  ["Topik apa yang enak dibahas pas baru kenal orang?", "bond", 1],
+  ["1 hal tentang kamu yang jarang dicerita di awal kenalan?", "bond", 2],
+  ["Kalau orang di depanmu tanya mimpi kamu, jawab jujur apa?", "bond", 2],
+  ["Tanda kamu udah nyaman sama seseorang apa aja?", "bond", 2],
+  ["Pernah salah sangka niat orang? Cerita dikit.", "bond", 2],
+  ["1 pertanyaan yang ingin kamu tanya ke orang di seberangmu sekarang?", "bond", 2],
+  ["Lagi sedih: butuh dinasehatin, dipeluk, atau didengerin aja?", "bond", 2],
+  ["Hal kecil apa yang bikin kamu ngerasa cocok sama orang?", "bond", 1],
+  ["Hal kecil apa yang bikin kamu males kenalan lebih jauh?", "bond", 2],
+  ["Batas pribadi yang tetap kamu jaga meski ingin deket?", "bond", 3],
+  ["Chat dulu lama, atau ketemu lebih enak?", "flirt", 1],
+  ["Pernah nulis chat panjang terus dihapus? Ke siapa (boleh rahasia)?", "crush", 1],
+  ["Ide kejutan kecil buat orang yang kamu suka apa?", "date", 1],
+  ["Lebih suka orang ambisius, atau yang santai?", "flags", 1],
+  ["Pelajaran dari crush dulu yang masih kamu bawa?", "know", 3],
+  ["Kalau harus pilih: ganteng/cantik atau sikap bagus?", "flags", 1],
+  ["Orang di room ini kira-kira cocok jadi temen curhat kamu siapa?", "bond", 1],
+  ["Apa yang bikin kamu ngerasa spesial pas diajak ngobrol seseorang?", "bond", 2],
+  ["Pernah pura-pura gak suka padahal suka? Kenapa?", "crush", 2],
+  ["Kamu lebih takut ditolak, atau takut nyakitin orang?", "know", 3],
+  ["Kalau dia bilang 'butuh space', kamu ngerasa apa dulu?", "know", 3],
+  ["3 kata yang jelasin kamu sebagai orang.", "bond", 1],
+  ["Makanan / minuman bareng yang paling enak buat kencan?", "date", 1],
+  ["Pernah simpan foto / chat crush lama banget?", "crush", 2],
+  ["Saran buat temen yang lagi galau naksir orang?", "crush", 1],
 ];
 
-const COUPLE_TRUTH_TOPICS = [
-  "chat tiap hari",
-  "bales chat cepet",
-  "kencan pertama",
-  "ajak ketemu",
-  "nembak",
-  "cuma temenan",
-  "cemburu",
-  "mantan",
-  "medsos",
-  "liat story",
-  "gombal",
-  "pujian",
-  "kencan murah",
-  "patungan bayar",
-  "dijemput",
-  "video call",
-  "voice note",
-  "chat selamat pagi",
-  "suka pelan-pelan",
-  "terlalu manis di awal",
-  "hilang sepihak",
-  "status gak jelas",
-  "status resmi",
-  "kenalan keluarga",
-  "jauh jarak",
-  "hobi bareng",
-  "musik bareng",
-  "nonton bareng",
-  "penampilan",
-  "bisa bikin ketawa",
-  "aturan hidup",
-  "masa kecil",
-  "mimpi ke depan",
-  "takut pacaran",
-  "sakit hati dulu",
-  "setia",
-  "percaya orang",
-  "rahasia hati",
-  "jadi diri sendiri",
-  "kenangan dalam",
-  "saling kenal",
-  "buka diri berdua",
-  "percaya orang baru",
-  "nyaman berdua",
-  "tukar cerita dalam",
-];
-
-const COUPLE_DARE_TEMPLATES: Array<[string, Difficulty]> = [
-  ["Sebut 3 maumu soal {x}. Keras-keras.", "easy"],
-  ["Cerita 20 detik: {x} yang ideal buat kamu.", "easy"],
-  ["Akuin 1 salahmu soal {x} pas naksir orang.", "medium"],
-  ["Pura-pura chat soal {x} ke crush — baca 15 detik.", "medium"],
-  ["Kasih tips gampang biar jago soal {x}.", "easy"],
-  ["Sebut yang bagus vs jelek soal {x}.", "medium"],
-  ["Buat chat pertama keren soal {x}.", "easy"],
-  ["Bicara 25 detik: 'buat aku, {x} di dating itu…'", "hard"],
+const COUPLE_BULK_DARES: Array<[string, Category, Difficulty]> = [
+  ["Sebut 3 sifat baik yang kamu cari di pacar. Keras-keras.", "flags", "easy"],
+  ["Cerita 20 detik kencan pertama impianmu.", "date", "easy"],
+  ["Cerita tipe crush tanpa sebut nama orang beneran.", "crush", "easy"],
+  ["Pura-pura minta IG ke 'crush' (pilih pemain) — 15 detik.", "flirt", "medium"],
+  ["Nyanyi / hum 10 detik lagu yang kepikiran pas naksir.", "crush", "easy"],
+  ["Sebut 5 tempat kencan murah.", "date", "easy"],
+  ["Puji 1 orang di room seolah kamu lagi naksir (sopan).", "flirt", "medium"],
+  ["Buat chat pertama ke crush yang gak cringe — baca keras.", "flirt", "medium"],
+  ["Sebut 3 sifat yang bikin kamu kabur dari orang.", "flags", "easy"],
+  ["Tiru cara kamu chat pas lagi naksir.", "flirt", "easy"],
+  ["Pilih: dipuji, di-chat, dipegang tangan, atau dikasih hadiah? + alasan.", "flags", "easy"],
+  ["Pura-pura ditolak baik-baik — 15 detik.", "crush", "medium"],
+  ["Rencana kencan hujan murah — 20 detik.", "date", "medium"],
+  ["Sebut 4 film enak nonton bareng, urut 1–4.", "date", "easy"],
+  ["Pilih 1 orang: bilang 1 alasan dia cocok diajak jalan (sopan).", "date", "medium"],
+  ["Tipe pacar ideal dalam 3 kata, lalu jelasin 1.", "crush", "easy"],
+  ["Pura-pura chat ajak ketemu — baca keras.", "flirt", "medium"],
+  ["Sebut 5 lagu pas lagi naksir.", "crush", "medium"],
+  ["Pose biar keliatan pede di kencan — 5 detik.", "date", "easy"],
+  ["Pilih cepat: ganteng/cantik atau sikap? + alasan 10 detik.", "flags", "easy"],
+  ["Buat gombalan konyol buat group.", "flirt", "medium"],
+  ["Bicara 20 detik: 'yang bikin aku tiba-tiba naksir itu…'", "crush", "medium"],
+  ["Sebut 3 hal yang ingin kamu tahu tentang crush.", "know", "easy"],
+  ["Cerita 30 detik kenapa kamu suka seseorang (boleh tanpa nama).", "know", "medium"],
+  ["Tulis 1 pertanyaan buat crush, lalu baca ke group.", "know", "easy"],
+  ["Cerita 1 pelajaran dari sakit hati dulu.", "know", "hard"],
+  ["Jujur 20 detik: takut apa kalau jadian sama crush?", "know", "hard"],
+  ["Sebut 3 tanda 'udah kenal banget' menurutmu.", "know", "easy"],
+  ["Jawab seolah crush nanya: 'kenapa kamu suka aku?'", "know", "medium"],
+  ["Sebut 2 hal di hidup yang gak boleh dikorbankan demi pacaran.", "know", "easy"],
+  ["Sebut 3 hal tentang kamu yang jarang dicerita pas baru kenal.", "bond", "easy"],
+  ["Pilih 1 orang: saling tanya 1 pertanyaan (giliran 20 detik).", "bond", "medium"],
+  ["Cerita 30 detik momen kecil pas kecil yang nempel.", "bond", "medium"],
+  ["Tulis 1 pertanyaan buat orang di seberangmu — baca.", "bond", "easy"],
+  ["Sebut 1 hal yang orang sering salah sangka tentang kamu.", "bond", "easy"],
+  ["Bicara 20 detik: 'biar kenal aku, ketahui dulu…'", "bond", "medium"],
+  ["Sebut 3 tanda kamu udah nyaman cerita ke orang.", "bond", "easy"],
+  ["Jujur: 1 takut pas mau buka diri ke orang baru.", "bond", "medium"],
+  ["Sebut 3 topik enak dibahas berdua malam ini.", "bond", "easy"],
+  ["Cerita momen kamu beneran didengerin orang.", "bond", "medium"],
+  ["Akuin 1 batas yang tetap kamu jaga meski ingin deket.", "bond", "medium"],
+  ["Pilih 1 orang: bilang 1 hal tulus yang ingin kamu tahu tentang dia.", "bond", "medium"],
+  ["20 detik: nyaman berdua buat kamu artinya apa?", "bond", "easy"],
+  ["Baca 1 pertanyaan paling ingin kamu tanya ke orang di seberangmu.", "bond", "hard"],
+  ["Rencana kencan 1 hari (pagi–malam) singkat.", "date", "hard"],
+  ["Pura-pura nembak dengan gayamu sendiri — 15 detik.", "crush", "hard"],
 ];
 
 function expandTruths(): TruthCard[] {
@@ -712,17 +767,10 @@ function expandTruths(): TruthCard[] {
     cards.push(t(`truth_seed_${i}`, seed[0], category, modes, seed[3]));
   });
 
-  // Couple-only bulk — sub-kategori couple
-  let cIdx = 0;
-  for (const tmpl of COUPLE_TRUTH_TEMPLATES) {
-    for (const topic of COUPLE_TRUTH_TOPICS) {
-      const text = tmpl.replace("{x}", topic);
-      const intensity = ((cIdx % 4) + 1) as 1 | 2 | 3 | 4 | 5;
-      const category = assignCoupleCategory(text, cIdx);
-      cards.push(t(`truth_couple_${cIdx}`, text, category, COUPLE_MODES, intensity));
-      cIdx++;
-    }
-  }
+  // Couple bulk: pertanyaan utuh yang gampang dibaca
+  COUPLE_BULK_TRUTHS.forEach(([text, category, intensity], cIdx) => {
+    cards.push(t(`truth_couple_${cIdx}`, text, category, COUPLE_MODES, intensity));
+  });
 
   let idx = 0;
   for (const tmpl of TRUTH_TEMPLATES) {
@@ -767,15 +815,9 @@ function expandDares(): DareCard[] {
     cards.push(d(`dare_seed_${i}`, seed[0], category, modes, seed[3]));
   });
 
-  let cIdx = 0;
-  for (const [tmpl, diff] of COUPLE_DARE_TEMPLATES) {
-    for (const topic of COUPLE_TRUTH_TOPICS) {
-      const text = tmpl.replace("{x}", topic);
-      const category = assignCoupleCategory(text, cIdx);
-      cards.push(d(`dare_couple_${cIdx}`, text, category, COUPLE_MODES, diff));
-      cIdx++;
-    }
-  }
+  COUPLE_BULK_DARES.forEach(([text, category, diff], cIdx) => {
+    cards.push(d(`dare_couple_${cIdx}`, text, category, COUPLE_MODES, diff));
+  });
 
   let idx = 0;
   for (const [tmpl, diff] of DARE_TEMPLATES) {
