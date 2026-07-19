@@ -28,6 +28,13 @@ function coupleCategoryFor(index: number): Category {
 function assignCoupleCategory(text: string, fallbackIndex: number): Category {
   const t = text.toLowerCase();
   if (
+    /mengenal|lebih dalam|nilai hidup|masa kecil|keluarga|mimpi|takut|rahasia|percaya|masa depan|siapa dia|dalam hatimu|emotional|luka|trauma|tumbuh|prioritas hidup|arti cinta|kenangan|impian|kecewa|bahagia|sendiri|kesepian|jati diri|karakter|kepribadian|paling penting|paling rindu|paling bangga|paling takut|apa yang dia|kalau dia tahu|yang jarang orang tahu|soft spot|luka lama|healing|keamanan|rentan|vulnerable/.test(
+      t
+    )
+  ) {
+    return "know";
+  }
+  if (
     /green flag|red flag|dealbreaker|ghosting|mundur|toxic|boundary|serius|husband|wife material/.test(
       t
     )
@@ -188,6 +195,58 @@ const TRUTH_SEEDS: Array<[string, Category, GameMode[], 1 | 2 | 3 | 4 | 5]> = [
   ["Snack / minuman order favorit buat sharing di kencan?", "romance", COUPLE_MODES, 1],
   ["Pernah crush sama teman deket? Endingnya gimana (umum aja)?", "romance", COUPLE_MODES, 2],
   ["Yang bikin kamu feel special di awal kenal orang?", "romance", COUPLE_MODES, 2],
+
+  // Couple — Kenal Crush (Deep): pertanyaan biar lebih kenal crush / perasaan dalam
+  ["Apa yang paling ingin kamu ketahui tentang crush-mu tapi belum berani tanya?", "know", COUPLE_MODES, 3],
+  ["Kalau crush-mu bisa baca 1 pikiranmu sekarang, apa yang paling memalukan?", "know", COUPLE_MODES, 3],
+  ["Nilai hidup nomor satu yang harus cocok antara kamu dan crush?", "know", COUPLE_MODES, 3],
+  ["Apa ketakutan terbesarmu kalau hubungan sama crush jadi serius?", "know", COUPLE_MODES, 4],
+  ["Mimpi 5 tahun ke depan — di mana posisi crush idealnya di situ?", "know", COUPLE_MODES, 3],
+  ["Ceritakan 1 luka lama yang masih memengaruhi caramu naksir orang.", "know", COUPLE_MODES, 4],
+  ["Apa yang bikin kamu merasa 'aman' di dekat seseorang yang kamu suka?", "know", COUPLE_MODES, 3],
+  ["Kalau crush-mu tanya 'kenapa kamu suka aku?', jawaban jujurmu apa?", "know", COUPLE_MODES, 3],
+  ["Sisi kepribadian crush yang paling ingin kamu pahami lebih dalam?", "know", COUPLE_MODES, 2],
+  ["Apa yang jarang orang tahu tentang caramu mencintai / naksir?", "know", COUPLE_MODES, 3],
+  ["Kapan terakhir kamu ngerasa benar-benar dimengerti seseorang?", "know", COUPLE_MODES, 3],
+  ["Kalau crush lagi down, cara support yang paling tulus menurutmu?", "know", COUPLE_MODES, 2],
+  ["Satu rahasia kecil tentang dirimu yang baru mau kamu buka ke crush.", "know", COUPLE_MODES, 4],
+  ["Apa arti 'setia' bagimu — bukan cuma gak selingkuh?", "know", COUPLE_MODES, 3],
+  ["Masa kecil / keluarga membentuk standar crush-mu kayak gimana?", "know", COUPLE_MODES, 3],
+  ["Hal apa di dirimu yang kamu takut crush tolak kalau dia tahu?", "know", COUPLE_MODES, 4],
+  ["Kalau harus jujur: kamu naksir orangnya, potensinya, atau rasa sepi?", "know", COUPLE_MODES, 4],
+  ["Apa yang bikin kamu yakin 'ini beda' dibanding crush sebelumnya?", "know", COUPLE_MODES, 3],
+  ["Prioritas hidup yang gak boleh dikorbankan demi jadian?", "know", COUPLE_MODES, 3],
+  ["Bagaimana kamu biasanya nunjukin care yang dalam, bukan cuma flirty?", "know", COUPLE_MODES, 2],
+  ["Kalau crush-mu bilang dia butuh space, reaksi jujur di dalam hatimu?", "know", COUPLE_MODES, 3],
+  ["Satu pertanyaan deep yang ingin kamu tanyain di PDKT serius.", "know", COUPLE_MODES, 2],
+  ["Apa yang kamu pelajari tentang dirimu dari naksir crush ini?", "know", COUPLE_MODES, 3],
+  ["Soft spot-mu yang cuma orang dekat yang boleh tahu?", "know", COUPLE_MODES, 3],
+  ["Kalau masa depan bareng crush gagal, apa yang tetap kamu syukuri?", "know", COUPLE_MODES, 3],
+  ["Definisi 'kenal banget' seseorang — butuh berapa lama & apa tandanya?", "know", COUPLE_MODES, 2],
+  ["Ceritakan momen di mana kamu ngerasa crush-mu 'lihat' kamu beneran.", "know", COUPLE_MODES, 3],
+  ["Apa yang kamu butuhkan biar berani lebih terbuka ke crush?", "know", COUPLE_MODES, 3],
+  ["Kalau crush tanya mimpi terbesarmu, apa yang kamu jawab jujur?", "know", COUPLE_MODES, 2],
+  ["Bag yang paling bikin kamu rindu (bukan fisik) dari crush?", "know", COUPLE_MODES, 3],
+  ["Seberapa penting agama / nilai keluarga cocok buat kamu di crush?", "know", COUPLE_MODES, 3],
+  ["Pernah idealisasi crush? Di bagian mana kamu sadar berlebihan?", "know", COUPLE_MODES, 4],
+  ["Kalau crush-mu punya masa lalu berat, kamu siap dengerin full gak?", "know", COUPLE_MODES, 3],
+  ["Apa yang bikin kamu merasa 'cukup' dicintai, bukan cuma di-chat?", "know", COUPLE_MODES, 3],
+  ["Satu kebiasaan emosional yang ingin crush-mu pahami tentangmu.", "know", COUPLE_MODES, 3],
+  ["Kalau harus pilih: kenal dalam dulu atau jadian dulu baru dalam — mana?", "know", COUPLE_MODES, 2],
+  ["Apa yang kamu takut salah paham tentang niatmu ke crush?", "know", COUPLE_MODES, 3],
+  ["Ceritakan versi terbaik dirimu yang ingin crush lihat.", "know", COUPLE_MODES, 2],
+  ["Kalau crush tanya 'kamu takut apa di hubungan?', jawabanmu?", "know", COUPLE_MODES, 4],
+  ["Satu kenangan (boleh kecil) yang bikin kamu yakin naksir dia.", "know", COUPLE_MODES, 2],
+  ["Bagaimana kamu jaga diri biar gak hilang jati diri pas naksir?", "know", COUPLE_MODES, 3],
+  ["Apa arti 'rumah' emosional bagimu dalam konteks crush / pasangan?", "know", COUPLE_MODES, 4],
+  ["Kalau crush-mu berubah (sibuk, dingin), batas sabarmu di mana?", "know", COUPLE_MODES, 3],
+  ["Satu pertanyaan yang bisa bikin kalian berdua lebih saling kenal malam ini.", "know", COUPLE_MODES, 2],
+  ["Jujur: apa yang masih kamu sembunyiin dari crush (bukan rahasia orang lain)?", "know", COUPLE_MODES, 4],
+  ["Kalau crush bilang 'aku belum siap', cara sehatmu merespons?", "know", COUPLE_MODES, 3],
+  ["Apa yang bikin kamu bangga kalau crush-mu kenal versi itu dari dirimu?", "know", COUPLE_MODES, 2],
+  ["Dalam diam, doa / harapan apa yang sering kamu simpan soal crush?", "know", COUPLE_MODES, 3],
+  ["Seberapa penting 'ketenangan' vs 'chemistry' buat jangka panjang?", "know", COUPLE_MODES, 3],
+  ["Kalau hanya boleh tahu 3 fakta deep tentang crush, apa yang kamu pilih?", "know", COUPLE_MODES, 2],
 
   // Friends
   ["Siapa di sini yang paling bisa dipercaya rahasia?", "friends", PARTY_MODES, 2],
@@ -405,6 +464,28 @@ const DARE_SEEDS: Array<[string, Category, GameMode[], Difficulty]> = [
   ["Pilih 1 orang: kasih compliment 'date energy' yang tulus.", "romance", COUPLE_MODES, "medium"],
   ["Sebut 1 pelajaran dari patah hati yang bikin kamu lebih jago dating.", "romance", COUPLE_MODES, "hard"],
 
+  // Couple dares — Kenal Crush (Deep)
+  ["Sebut 3 hal deep yang ingin kamu ketahui tentang crush-mu.", "know", COUPLE_MODES, "easy"],
+  ["Ceritakan 30 detik: kenapa kamu naksir dia di level yang lebih dalam.", "know", COUPLE_MODES, "medium"],
+  ["Tulis 1 pertanyaan deep buat crush, lalu bacakan ke group.", "know", COUPLE_MODES, "easy"],
+  ["Share 1 luka / pelajaran cinta yang membentuk caramu naksir sekarang.", "know", COUPLE_MODES, "hard"],
+  ["Sebut nilai hidup nomor 1 yang harus cocok sama crush.", "know", COUPLE_MODES, "medium"],
+  ["Monolog 20 dtk: 'yang jarang orang tahu soal caraku suka orang…'", "know", COUPLE_MODES, "medium"],
+  ["Jawab jujur: 1 takut terbesar kalau jadian sama crush.", "know", COUPLE_MODES, "hard"],
+  ["Deskripsikan 'kenal banget' menurutmu dalam 3 tanda konkret.", "know", COUPLE_MODES, "easy"],
+  ["Sebut mimpi 5 tahunmu + di mana idealnya crush di situ.", "know", COUPLE_MODES, "medium"],
+  ["Share soft spot-mu yang cuma orang dekat boleh tahu.", "know", COUPLE_MODES, "hard"],
+  ["Pilih 1 orang di room: tanya 1 pertanyaan deep (sopan) ke dia.", "know", COUPLE_MODES, "medium"],
+  ["Bacakan jawaban seolah crush nanya: 'kenapa kamu suka aku?'", "know", COUPLE_MODES, "medium"],
+  ["Sebut 2 prioritas hidup yang gak boleh dikorbankan demi jadian.", "know", COUPLE_MODES, "easy"],
+  ["Ceritakan momen kamu ngerasa 'dilihat' beneran sama crush / orang.", "know", COUPLE_MODES, "medium"],
+  ["Akuin 1 hal yang masih kamu idealisasi tentang crush.", "know", COUPLE_MODES, "hard"],
+  ["List 3 fakta deep yang ingin kamu tukar bareng crush (timbal balik).", "know", COUPLE_MODES, "easy"],
+  ["Roleplay tanya deep pertama di PDKT serius — 15 detik.", "know", COUPLE_MODES, "medium"],
+  ["Sebut cara sehat merespons 'aku belum siap' dari crush.", "know", COUPLE_MODES, "medium"],
+  ["Dalam 20 detik: arti setia bagimu (bukan cuma gak selingkuh).", "know", COUPLE_MODES, "hard"],
+  ["Share 1 doa / harapan diam-diam soal crush (tanpa nama kalau perlu).", "know", COUPLE_MODES, "hard"],
+
   // Office / school
   ["Presentasikan 'ide bisnis' absurd selama 30 detik.", "office", PARTY_MODES, "medium"],
   ["Buat email formal palsu yang konyol dan bacakan.", "office", PARTY_MODES, "medium"],
@@ -510,6 +591,17 @@ const COUPLE_TRUTH_TOPICS = [
   "nonton bareng",
   "tipe penampilan",
   "sense of humor",
+  // Kenal crush (deep)
+  "nilai hidup",
+  "masa kecil",
+  "mimpi masa depan",
+  "takut di hubungan",
+  "luka lama",
+  "arti setia",
+  "percaya penuh",
+  "rahasia hati",
+  "jati diri",
+  "kenangan dalam",
 ];
 
 const COUPLE_DARE_TEMPLATES: Array<[string, Difficulty]> = [
@@ -709,9 +801,9 @@ export function generateAITruth(mode: GameMode, playerName: string): TruthCard {
       `${playerName}, tipe orang yang bikin kamu naksir itu kayak gimana?`,
       `${playerName}, green flag nomor satu yang kamu cari di calon?`,
       `${playerName}, first date ideal kamu kayak apa?`,
-      `${playerName}, red flag yang bikin kamu langsung mundur?`,
-      `${playerName}, lebih suka dikejar pelan atau clear dari awal?`,
-      `${playerName}, dealbreaker di dating yang gak bisa dikompromi?`,
+      `${playerName}, apa yang paling ingin kamu ketahui tentang crush-mu?`,
+      `${playerName}, nilai hidup mana yang harus cocok sama crush?`,
+      `${playerName}, kalau crush tanya 'kenapa kamu suka aku?', jawabannya?`,
     ],
     family: [
       `${playerName}, tradisi keluarga favoritmu apa?`,

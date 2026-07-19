@@ -391,7 +391,7 @@ export function Lobby() {
             </p>
             <p className="mb-2 text-[10px] text-white/35">
               {isCoupleMode
-                ? "Crush · Kencan · Flag · Flirting — kosong = semua"
+                ? "Crush · Kencan · Flag · Flirt · Kenal Crush — kosong = semua"
                 : "School/office/dll tidak masuk Couple Mode"}
             </p>
             <div className="flex flex-wrap gap-1">
