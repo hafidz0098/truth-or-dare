@@ -4,7 +4,9 @@ export type GameMode =
   | "couple"
   | "family"
   | "extreme"
-  | "chaos";
+  | "chaos"
+  /** Game terpisah: Never Have I Ever (bukan kategori TOD) */
+  | "never";
 
 export type Category =
   | "funny"
@@ -79,7 +81,9 @@ export type GamePhase =
   | "event"
   | "mystery"
   | "result"
-  | "highlights";
+  | "highlights"
+  /** Never Have I Ever play screen */
+  | "nhie";
 
 export type PowerCardType =
   | "skip"
@@ -306,5 +310,11 @@ export const MODE_INFO: Record<
     description: "Event acak, double dare, plot twist terus",
     icon: "🌪️",
     color: "#EAB308",
+  },
+  never: {
+    name: "Never Have I Ever",
+    description: "Aku belum pernah… — yang pernah angkat tangan!",
+    icon: "✋",
+    color: "#06B6D4",
   },
 };

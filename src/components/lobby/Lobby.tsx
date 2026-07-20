@@ -17,6 +17,12 @@ import {
   type GameMode,
   type Category,
 } from "@/types";
+import {
+  NHIE_CATEGORIES,
+  NHIE_PACK_LABELS,
+  NHIE_PACK_TO_CATEGORY,
+  type NhiePack,
+} from "@/data/never-have-i-ever";
 import { sound } from "@/lib/sound";
 import { getClientId } from "@/lib/supabase/client-id";
 
@@ -61,10 +67,23 @@ export function Lobby() {
 
   const modes = Object.keys(MODE_INFO) as GameMode[];
   const isCoupleMode = settings.mode === "couple";
-  // Kategori couple dipisah total dari kategori umum
+  const isNhieMode = settings.mode === "never";
+  // Kategori couple / NHIE pack dipisah dari kategori umum TOD
   const categories: Category[] = isCoupleMode
     ? COUPLE_CATEGORIES
-    : GENERAL_CATEGORIES;
+    : isNhieMode
+      ? NHIE_CATEGORIES
+      : GENERAL_CATEGORIES;
+
+  const categoryLabel = (c: Category) => {
+    if (isNhieMode) {
+      const pack = (Object.keys(NHIE_PACK_TO_CATEGORY) as NhiePack[]).find(
+        (p) => NHIE_PACK_TO_CATEGORY[p] === c
+      );
+      if (pack) return NHIE_PACK_LABELS[pack];
+    }
+    return CATEGORY_LABELS[c];
+  };
 
   if (phase === "mode-select") {
     return (
@@ -123,6 +142,44 @@ export function Lobby() {
             </div>
             <p className="mt-2 text-center text-[10px] text-white/40">
               Kosong = semua kategori couple
+            </p>
+          </div>
+        )}
+
+        {settings.mode === "never" && (
+          <div className="rounded-2xl border border-cyan-400/25 bg-cyan-500/10 p-4">
+            <p className="mb-2 text-center text-xs font-bold uppercase tracking-wide text-cyan-200/90">
+              Pack Never Have I Ever
+            </p>
+            <p className="mb-3 text-center text-[11px] text-white/50">
+              Bukan kategori TOD — ini filter prompt “Aku belum pernah…”
+            </p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {NHIE_CATEGORIES.map((c) => {
+                const on = settings.categories.includes(c);
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => {
+                      const next = on
+                        ? settings.categories.filter((x) => x !== c)
+                        : [...settings.categories, c];
+                      updateSettings({ categories: next });
+                    }}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+                      on
+                        ? "bg-cyan-500 text-slate-900"
+                        : "bg-slate-900/80 text-white/60"
+                    }`}
+                  >
+                    {categoryLabel(c)}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-center text-[10px] text-white/40">
+              Kosong = semua pack
             </p>
           </div>
         )}
@@ -401,12 +458,16 @@ export function Lobby() {
             <p className="mb-1 text-xs text-white/50">
               {isCoupleMode
                 ? "Kategori Couple (pisah dari mode lain)"
-                : "Kategori umum"}
+                : isNhieMode
+                  ? "Pack Never Have I Ever"
+                  : "Kategori umum"}
             </p>
             <p className="mb-2 text-[10px] text-white/35">
               {isCoupleMode
                 ? "Crush · Kencan · Flag · Flirt · Kenal Crush · Saling Kenal — kosong = semua"
-                : "School/office/dll tidak masuk Couple Mode"}
+                : isNhieMode
+                  ? "Lucu · Couple · Dalam · Party · Family — kosong = semua"
+                  : "School/office/dll tidak masuk Couple Mode"}
             </p>
             <div className="flex flex-wrap gap-1">
               {categories.map((c) => {
@@ -429,7 +490,7 @@ export function Lobby() {
                         : "bg-slate-900 text-white/60"
                     }`}
                   >
-                    {CATEGORY_LABELS[c]}
+                    {categoryLabel(c)}
                   </button>
                 );
               })}

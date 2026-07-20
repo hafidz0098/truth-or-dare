@@ -49,6 +49,14 @@ export type OnlineGameSnapshot = {
   showConfetti: boolean;
   /** playerId -> sisa ganti kartu */
   cardRerollsByPlayer?: Record<string, number>;
+  nhiePrompt?: {
+    id: string;
+    text: string;
+    packs: string[];
+  } | null;
+  nhieVotes?: Record<string, "ever" | "never">;
+  nhieShowResults?: boolean;
+  usedNhieIds?: string[];
   mode?: GameMode;
   settings?: Partial<GameSettings>;
 };

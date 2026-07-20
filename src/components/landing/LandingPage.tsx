@@ -290,12 +290,12 @@ export function LandingPage() {
       <Modal open={panel === "howto"} onClose={() => setPanel(null)} title="How To Play">
         <ol className="space-y-3 text-sm text-white/80">
           <li>1. Buat/join room & tambah 2–20 pemain.</li>
-          <li>2. Pilih mode (Classic, Party, Couple, Family, Extreme, Chaos).</li>
-          <li>3. Putar roda 3D — siapa yang kena?</li>
-          <li>4. Pilih Truth atau Dare (atau Risk vs Reward!).</li>
-          <li>5. Selesaikan challenge, kumpulkan XP & combo.</li>
-          <li>6. Event acak & mystery box biar gak boring!</li>
-          <li>7. Akhir sesi: highlights + MVP party 👑</li>
+          <li>2. Pilih mode: TOD (Classic/Party/Couple/…) atau Never Have I Ever.</li>
+          <li>3. TOD: putar roda → Truth/Dare. NHIE: “Aku belum pernah…” + vote.</li>
+          <li>4. Selesaikan ronde, kumpulkan XP (TOD) atau saling jujur (NHIE).</li>
+          <li>5. Event acak & mystery box di mode TOD.</li>
+          <li>6. Bisa ganti kartu Truth/Dare (jatah terbatas).</li>
+          <li>7. Akhir sesi: highlights + MVP 👑</li>
         </ol>
         <Button className="mt-5" fullWidth onClick={() => setPanel(null)}>
           Mengerti!

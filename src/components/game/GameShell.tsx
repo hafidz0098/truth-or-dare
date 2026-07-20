@@ -9,6 +9,7 @@ import { EventOverlay } from "./EventOverlay";
 import { MysteryBox } from "./MysteryBox";
 import { Highlights } from "./Highlights";
 import { Voting } from "./Voting";
+import { NeverHaveIEver } from "./NeverHaveIEver";
 import { AVATAR_COLORS } from "@/types";
 import { Button } from "@/components/ui/Button";
 
@@ -20,6 +21,7 @@ export function GameShell() {
   const settings = useGameStore((s) => s.settings);
   const endGame = useGameStore((s) => s.endGame);
   const screenShake = useGameStore((s) => s.screenShake);
+  const isNhie = settings.mode === "never" || phase === "nhie";
 
   return (
     <motion.div
@@ -62,7 +64,8 @@ export function GameShell() {
           exit={{ opacity: 0, y: -12, filter: "blur(4px)" }}
           transition={{ duration: 0.28 }}
         >
-          {phase === "spinning" && (
+          {phase === "nhie" && <NeverHaveIEver />}
+          {phase === "spinning" && !isNhie && (
             <div className="px-4">
               <h2 className="mb-4 text-center text-2xl font-black text-white">
                 🎡 Spin the Wheel

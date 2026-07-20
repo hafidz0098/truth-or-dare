@@ -18,6 +18,8 @@ const MODE_CATEGORIES: Record<GameMode, Category[] | null> = {
   family: ["family", "funny", "friends", "school", "random"],
   extreme: ["deep", "adult", "romance", "friends", "funny", "random"],
   chaos: null, // campur semua (kecuali adult tanpa flag)
+  // NHIE: filter pack lewat kategori (funny/romance/deep/friends/family)
+  never: ["funny", "romance", "deep", "friends", "family"],
 };
 
 function coupleCategoryFor(index: number): Category {
@@ -956,6 +958,11 @@ export function generateAITruth(mode: GameMode, playerName: string): TruthCard {
       `${playerName}, plot twist hidupmu yang paling gila?`,
       `${playerName}, pandang siapa di sini — bilang satu rahasia random!`,
       `${playerName}, truth chaos: pilih orang, tanya apa saja (sopan).`,
+    ],
+    never: [
+      `${playerName}, aku belum pernah… bilang rahasia di game grup.`,
+      `${playerName}, aku belum pernah… naksir orang di room ini (jujur!).`,
+      `${playerName}, aku belum pernah… skip tantangan karena malu.`,
     ],
   };
   const prompts = byMode[mode] ?? byMode.classic;

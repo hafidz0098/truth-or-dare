@@ -71,6 +71,7 @@ const HOST_LINES = {
     family: ["Family friendly, aman untuk semua!"],
     extreme: ["EXTREME! Hati-hati... ⚡"],
     chaos: ["CHAOS MODE! Tidak ada aturan! 🌪️"],
+    never: ["Never Have I Ever! Yang pernah, jujur ya ✋"],
   } as Record<GameMode, string[]>,
 };
 

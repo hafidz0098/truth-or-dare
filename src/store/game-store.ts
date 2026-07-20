@@ -8,6 +8,10 @@ import {
   generateAIDare,
   generateAITruth,
 } from "@/data/cards";
+import {
+  pickNhiePrompt,
+  type NhiePrompt,
+} from "@/data/never-have-i-ever";
 import { generateDailyMissions } from "@/data/achievements";
 import {
   CHAOS_EVENTS,
@@ -46,6 +50,7 @@ import type { RoomRow } from "@/lib/supabase/types";
 import type {
   AvatarColor,
   CardType,
+  Category,
   ChaosEventType,
   DailyMission,
   Difficulty,
@@ -165,6 +170,12 @@ interface GameState {
   screenShake: boolean;
   selectedRisk: boolean;
 
+  // Never Have I Ever
+  nhiePrompt: NhiePrompt | null;
+  nhieVotes: Record<string, "ever" | "never">;
+  nhieShowResults: boolean;
+  usedNhieIds: string[];
+
   // actions
   setProfile: (name: string, avatar?: string, color?: AvatarColor) => void;
   updateSettings: (partial: Partial<GameSettings>) => void;
@@ -197,6 +208,10 @@ interface GameState {
   openMystery: () => void;
   clearMystery: () => void;
   nextTurn: () => void;
+  /** NHIE: vote pernah / belum (playerId opsional — default current client / local pick) */
+  castNhieVote: (vote: "ever" | "never", playerId?: string) => void;
+  revealNhieResults: () => void;
+  nextNhieRound: () => void;
   endGame: () => void;
   backToLobby: () => void;
   resetSession: () => void;
@@ -260,6 +275,10 @@ function buildOnlineSnapshot(s: GameState): OnlineGameSnapshot {
     cardRerollsByPlayer: Object.fromEntries(
       s.players.map((p) => [p.id, p.cardRerollsLeft ?? 0])
     ),
+    nhiePrompt: s.nhiePrompt,
+    nhieVotes: s.nhieVotes,
+    nhieShowResults: s.nhieShowResults,
+    usedNhieIds: s.usedNhieIds,
     mode: s.settings.mode,
   };
 }
@@ -315,6 +334,11 @@ export const useGameStore = create<GameState>()(
       showConfetti: false,
       screenShake: false,
       selectedRisk: false,
+
+      nhiePrompt: null,
+      nhieVotes: {},
+      nhieShowResults: false,
+      usedNhieIds: [],
 
       setProfile: (name, avatar, color) => {
         const displayName = (name ?? "").trim() || "Player";
@@ -509,6 +533,7 @@ export const useGameStore = create<GameState>()(
           "mystery",
           "result",
           "highlights",
+          "nhie",
         ];
         suppressOnlinePush = true;
         if (allowed.includes(phase as GamePhase)) {
@@ -576,6 +601,14 @@ export const useGameStore = create<GameState>()(
                 : p
             );
           }
+          if (gs.nhiePrompt !== undefined) {
+            patch.nhiePrompt = gs.nhiePrompt as GameState["nhiePrompt"];
+          }
+          if (gs.nhieVotes) patch.nhieVotes = gs.nhieVotes;
+          if (typeof gs.nhieShowResults === "boolean") {
+            patch.nhieShowResults = gs.nhieShowResults;
+          }
+          if (gs.usedNhieIds) patch.usedNhieIds = gs.usedNhieIds;
         } else if (room.phase) {
           patch.phase = room.phase as GamePhase;
         }
@@ -716,6 +749,15 @@ export const useGameStore = create<GameState>()(
           let cats = s.settings.categories;
           if (mode === "couple") {
             cats = cats.filter((c) => COUPLE_CATEGORIES.includes(c));
+          } else if (mode === "never") {
+            const nhieCats: Category[] = [
+              "funny",
+              "romance",
+              "deep",
+              "friends",
+              "family",
+            ];
+            cats = cats.filter((c) => nhieCats.includes(c));
           } else {
             cats = cats.filter((c) => GENERAL_CATEGORIES.includes(c));
           }
@@ -730,11 +772,9 @@ export const useGameStore = create<GameState>()(
             bgMood:
               mode === "chaos"
                 ? "chaos"
-                : mode === "party"
+                : mode === "party" || mode === "couple" || mode === "never"
                   ? "party"
-                  : mode === "couple"
-                    ? "party"
-                    : "neutral",
+                  : "neutral",
           };
         });
         speak(set, "intro", { mode });
@@ -749,12 +789,50 @@ export const useGameStore = create<GameState>()(
         // Online: only host may start
         if (onlineRoomId && !get().isOnlineHost()) return;
 
-        const firstSpin =
-          players.length > 0 ? Math.floor(Math.random() * players.length) : 0;
         const rerolls = Math.max(
           0,
           Math.min(5, settings.cardRerollsPerPlayer ?? DEFAULT_CARD_REROLLS)
         );
+
+        // Never Have I Ever — alur beda (bukan wheel + truth/dare)
+        if (settings.mode === "never") {
+          const prompt = pickNhiePrompt(
+            settings.categories,
+            [],
+            false
+          );
+          set({
+            phase: "nhie",
+            currentRound: 1,
+            currentPlayerIndex: 0,
+            direction: 1,
+            spinTargetIndex: null,
+            history: [],
+            usedTruthIds: [],
+            usedDareIds: [],
+            lastCard: null,
+            highlights: [],
+            nhiePrompt: prompt,
+            nhieVotes: {},
+            nhieShowResults: false,
+            usedNhieIds: [prompt.id],
+            players: players.map((p) => ({ ...p, cardRerollsLeft: rerolls })),
+            profileStats: {
+              ...get().profileStats,
+              totalGames: get().profileStats.totalGames + 1,
+              favoriteMode: settings.mode,
+            },
+            hostMessage: "Never Have I Ever! Yang pernah, jujur ya ✋",
+            hostMood: "mischievous",
+            bgMood: "party",
+          });
+          get().bumpMission("play_rounds", 0);
+          if (onlineRoomId) get().pushOnlineSync(true);
+          return;
+        }
+
+        const firstSpin =
+          players.length > 0 ? Math.floor(Math.random() * players.length) : 0;
 
         set({
           phase: "spinning",
@@ -767,6 +845,10 @@ export const useGameStore = create<GameState>()(
           usedDareIds: [],
           lastCard: null,
           highlights: [],
+          nhiePrompt: null,
+          nhieVotes: {},
+          nhieShowResults: false,
+          usedNhieIds: [],
           players: players.map((p) => ({ ...p, cardRerollsLeft: rerolls })),
           profileStats: {
             ...get().profileStats,
@@ -1402,6 +1484,87 @@ export const useGameStore = create<GameState>()(
         if (onlineRoomId) get().pushOnlineSync(true);
       },
 
+      castNhieVote: (vote, playerId) => {
+        const s = get();
+        if (s.phase !== "nhie" || s.nhieShowResults) return;
+
+        let pid = playerId;
+        if (!pid) {
+          if (s.onlineRoomId) {
+            pid = getClientId();
+          } else {
+            // Lokal 1 HP: default pemain yang belum vote, atau current
+            const pending = s.players.find((p) => !s.nhieVotes[p.id]);
+            pid = pending?.id ?? s.players[s.currentPlayerIndex]?.id;
+          }
+        }
+        if (!pid) return;
+        // Online: hanya vote untuk diri sendiri
+        if (s.onlineRoomId && pid !== getClientId()) return;
+
+        set({
+          nhieVotes: { ...s.nhieVotes, [pid]: vote },
+        });
+
+        const next = get();
+        const allVoted =
+          next.players.length > 0 &&
+          next.players.every((p) => next.nhieVotes[p.id]);
+        if (allVoted) {
+          set({
+            nhieShowResults: true,
+            hostMessage: "Hasilnya keluar! 👀",
+            hostMood: "excited",
+          });
+        }
+        if (get().onlineRoomId) get().pushOnlineSync(false);
+      },
+
+      revealNhieResults: () => {
+        if (get().phase !== "nhie") return;
+        if (get().onlineRoomId && !get().isOnlineHost()) return;
+        set({
+          nhieShowResults: true,
+          hostMessage: "Hasil dibuka host! ✋",
+          hostMood: "mischievous",
+        });
+        if (get().onlineRoomId) get().pushOnlineSync(false);
+      },
+
+      nextNhieRound: () => {
+        const s = get();
+        if (s.phase !== "nhie") return;
+        if (s.onlineRoomId && !get().isOnlineHost()) return;
+
+        const newRound = s.currentRound + 1;
+        if (newRound > s.settings.rounds) {
+          get().endGame();
+          return;
+        }
+
+        const prompt = pickNhiePrompt(
+          s.settings.categories,
+          s.usedNhieIds,
+          false
+        );
+        const n = s.players.length;
+        const nextIdx = n ? (s.currentPlayerIndex + 1) % n : 0;
+
+        set({
+          currentRound: newRound,
+          currentPlayerIndex: nextIdx,
+          nhiePrompt: prompt,
+          nhieVotes: {},
+          nhieShowResults: false,
+          usedNhieIds: [...s.usedNhieIds, prompt.id],
+          hostMessage: "Ronde baru — yang pernah, jujur!",
+          hostMood: "happy",
+          bgMood: "party",
+        });
+        get().bumpMission("play_rounds");
+        if (get().onlineRoomId) get().pushOnlineSync(false);
+      },
+
       endGame: () => {
         const { players, history, settings } = get();
         const sorted = [...players].sort(
@@ -1503,6 +1666,10 @@ export const useGameStore = create<GameState>()(
           spinTargetIndex: null,
           showConfetti: false,
           bgMood: "neutral",
+          nhiePrompt: null,
+          nhieVotes: {},
+          nhieShowResults: false,
+          usedNhieIds: [],
         });
         if (get().onlineRoomId) get().pushOnlineSync(false);
       },
@@ -1525,6 +1692,10 @@ export const useGameStore = create<GameState>()(
           lastCard: null,
           highlights: [],
           bgMood: "neutral",
+          nhiePrompt: null,
+          nhieVotes: {},
+          nhieShowResults: false,
+          usedNhieIds: [],
         });
       },
 
