@@ -73,6 +73,7 @@ const DEFAULT_SETTINGS: GameSettings = {
   enableVoting: true,
   enableEvents: true,
   enablePowerCards: true,
+  cardRerollsPerPlayer: 2,
   adultContent: false,
   soundEnabled: true,
   musicEnabled: true,
@@ -105,6 +106,7 @@ function makePlayer(name: string, isHost = false): Player {
     combo: 0,
     maxCombo: 0,
     powerCards: isHost ? ["skip", "truth-shield"] : ["skip"],
+    cardRerollsLeft: 2,
     titles: [],
     badges: [],
     isHost,
@@ -112,6 +114,8 @@ function makePlayer(name: string, isHost = false): Player {
     ping: randomInt(12, 80),
   };
 }
+
+const DEFAULT_CARD_REROLLS = 2;
 
 interface GameState {
   // meta
@@ -182,6 +186,8 @@ interface GameState {
   startGame: () => void;
   spinDone: (playerIndex: number) => void;
   chooseCard: (type: CardType, riskReward?: boolean) => void;
+  /** Ganti kartu Truth/Dare (jatah terbatas per pemain) */
+  rerollCard: () => void;
   completeChallenge: (success: boolean) => void;
   castVote: (yes: boolean) => void;
   finishVoting: () => void;
@@ -251,6 +257,9 @@ function buildOnlineSnapshot(s: GameState): OnlineGameSnapshot {
     highlights: s.highlights,
     bgMood: s.bgMood,
     showConfetti: s.showConfetti,
+    cardRerollsByPlayer: Object.fromEntries(
+      s.players.map((p) => [p.id, p.cardRerollsLeft ?? 0])
+    ),
     mode: s.settings.mode,
   };
 }
@@ -559,6 +568,14 @@ export const useGameStore = create<GameState>()(
           patch.highlights = gs.highlights ?? [];
           patch.bgMood = gs.bgMood;
           patch.showConfetti = gs.showConfetti;
+          if (gs.cardRerollsByPlayer) {
+            const map = gs.cardRerollsByPlayer;
+            patch.players = get().players.map((p) =>
+              map[p.id] !== undefined
+                ? { ...p, cardRerollsLeft: map[p.id] }
+                : p
+            );
+          }
         } else if (room.phase) {
           patch.phase = room.phase as GamePhase;
         }
@@ -734,6 +751,10 @@ export const useGameStore = create<GameState>()(
 
         const firstSpin =
           players.length > 0 ? Math.floor(Math.random() * players.length) : 0;
+        const rerolls = Math.max(
+          0,
+          Math.min(5, settings.cardRerollsPerPlayer ?? DEFAULT_CARD_REROLLS)
+        );
 
         set({
           phase: "spinning",
@@ -746,6 +767,7 @@ export const useGameStore = create<GameState>()(
           usedDareIds: [],
           lastCard: null,
           highlights: [],
+          players: players.map((p) => ({ ...p, cardRerollsLeft: rerolls })),
           profileStats: {
             ...get().profileStats,
             totalGames: get().profileStats.totalGames + 1,
@@ -871,6 +893,119 @@ export const useGameStore = create<GameState>()(
           ),
         });
         if (get().onlineRoomId) get().pushOnlineSync(false);
+      },
+
+      rerollCard: () => {
+        const state = get();
+        if (state.phase !== "reveal" || !state.lastCard) return;
+        if (state.onlineRoomId && !get().isMyOnlineTurn()) return;
+
+        const {
+          settings,
+          players,
+          currentPlayerIndex,
+          lastCard,
+          usedTruthIds,
+          usedDareIds,
+        } = state;
+        const player = players[currentPlayerIndex];
+        if (!player) return;
+
+        const left = player.cardRerollsLeft ?? 0;
+        if (left <= 0) {
+          set({
+            hostMessage: "Jatah ganti kartu habis 😅",
+            hostMood: "teasing",
+          });
+          return;
+        }
+
+        const type = lastCard.type;
+        const riskReward = !!lastCard.riskReward;
+        const exclude = new Set<string>([
+          lastCard.id,
+          ...(type === "truth" ? usedTruthIds : usedDareIds),
+        ]);
+
+        let text = "";
+        let id = "";
+        let difficulty: Difficulty | undefined = lastCard.difficulty;
+
+        if (type === "truth") {
+          const pool = filterTruths(
+            settings.mode,
+            settings.categories,
+            settings.adultContent,
+            Array.from(exclude)
+          );
+          if (pool.length === 0) {
+            const ai = generateAITruth(settings.mode, player.name);
+            text = ai.text;
+            id = ai.id;
+          } else {
+            const card = pick(pool);
+            text = card.text;
+            id = card.id;
+          }
+          set({
+            usedTruthIds: [...usedTruthIds, lastCard.id, id].filter(
+              (v, i, a) => a.indexOf(v) === i
+            ),
+            bgMood: "truth",
+          });
+        } else {
+          let diff: Difficulty | "mixed" = settings.difficulty;
+          if (riskReward) diff = pick(["hard", "impossible"] as Difficulty[]);
+          const pool = filterDares(
+            settings.mode,
+            settings.categories,
+            riskReward ? (diff as Difficulty) : settings.difficulty,
+            settings.adultContent,
+            Array.from(exclude)
+          );
+          if (pool.length === 0) {
+            const d =
+              diff === "mixed"
+                ? pick(["easy", "medium", "hard"] as Difficulty[])
+                : (diff as Difficulty);
+            const ai = generateAIDare(settings.mode, player.name, d);
+            text = ai.text;
+            id = ai.id;
+            difficulty = ai.difficulty;
+          } else {
+            const card = pick(pool);
+            text = card.text;
+            id = card.id;
+            difficulty = card.difficulty;
+          }
+          set({
+            usedDareIds: [...usedDareIds, lastCard.id, id].filter(
+              (v, i, a) => a.indexOf(v) === i
+            ),
+            bgMood: "dare",
+          });
+        }
+
+        const react = hostReactToCard(type);
+        set({
+          lastCard: {
+            type,
+            text,
+            difficulty,
+            id,
+            riskReward,
+          },
+          players: players.map((p, i) =>
+            i === currentPlayerIndex
+              ? { ...p, cardRerollsLeft: Math.max(0, left - 1) }
+              : p
+          ),
+          hostMessage: `Kartu diganti! Sisa ${left - 1}x 🔄`,
+          hostMood: react.mood,
+          phase: "reveal",
+        });
+
+        if (get().onlineRoomId) get().pushOnlineSync(true);
       },
 
       completeChallenge: (success) => {

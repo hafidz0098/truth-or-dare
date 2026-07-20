@@ -14,6 +14,7 @@ export function CardReveal() {
   const players = useGameStore((s) => s.players);
   const idx = useGameStore((s) => s.currentPlayerIndex);
   const completeChallenge = useGameStore((s) => s.completeChallenge);
+  const rerollCard = useGameStore((s) => s.rerollCard);
   const usePowerCard = useGameStore((s) => s.usePowerCard);
   const onlineRoomId = useGameStore((s) => s.onlineRoomId);
   const settings = useGameStore((s) => s.settings);
@@ -21,14 +22,18 @@ export function CardReveal() {
   const [timer, setTimer] = useState(settings.timer);
   const player = players[idx];
   const canAct = !onlineRoomId || players[idx]?.id === getClientId();
+  const rerollsLeft = player?.cardRerollsLeft ?? 0;
+  const canReroll = canAct && rerollsLeft > 0;
 
   useEffect(() => {
+    setFlipped(false);
+    setTimer(settings.timer);
     const t = setTimeout(() => {
       setFlipped(true);
       if (settings.soundEnabled) sound.play("flip");
     }, 350);
     return () => clearTimeout(t);
-  }, [settings.soundEnabled]);
+  }, [lastCard?.id, settings.soundEnabled, settings.timer]);
 
   useEffect(() => {
     if (!flipped || settings.timer <= 0) return;
@@ -44,7 +49,7 @@ export function CardReveal() {
       });
     }, 1000);
     return () => clearInterval(id);
-  }, [flipped, settings.timer, settings.soundEnabled]);
+  }, [flipped, settings.timer, settings.soundEnabled, lastCard?.id]);
 
   if (!lastCard) return null;
 
@@ -61,10 +66,14 @@ export function CardReveal() {
         >
           <span className="text-2xl">{player.avatar}</span>
           <span className="font-bold text-white">{player.name}</span>
+          <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-white/60">
+            Ganti {rerollsLeft}x
+          </span>
         </div>
       )}
 
       <motion.div
+        key={lastCard.id}
         initial={{ rotateY: 180, scale: 0.8 }}
         animate={{ rotateY: flipped ? 0 : 180, scale: 1 }}
         transition={{ type: "spring", stiffness: 120, damping: 14 }}
@@ -119,36 +128,61 @@ export function CardReveal() {
 
       {!canAct ? (
         <p className="rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-center text-sm text-white/70">
-          Menunggu {player?.name ?? "pemain"} menyelesaikan challenge… (sync online)
+          Menunggu {player?.name ?? "pemain"} menyelesaikan challenge… (sync
+          online)
         </p>
       ) : (
-        <div className="flex w-full flex-wrap justify-center gap-3">
+        <div className="flex w-full flex-col items-center gap-3">
+          <div className="flex w-full flex-wrap justify-center gap-3">
+            <Button
+              variant="orange"
+              size="lg"
+              onClick={() => {
+                if (settings.soundEnabled) sound.play("win");
+                completeChallenge(true);
+              }}
+            >
+              ✓ Selesai
+            </Button>
+            <Button
+              variant="ghost"
+              size="lg"
+              onClick={() => {
+                if (settings.soundEnabled) sound.play("fail");
+                completeChallenge(false);
+              }}
+            >
+              ✗ Gagal / Skip
+            </Button>
+          </div>
+
           <Button
-            variant="orange"
-            size="lg"
+            variant="secondary"
+            size="md"
+            disabled={!canReroll}
             onClick={() => {
-              if (settings.soundEnabled) sound.play("win");
-              completeChallenge(true);
+              if (!canReroll) return;
+              if (settings.soundEnabled) sound.play("whoosh");
+              rerollCard();
             }}
+            className="min-w-[200px]"
           >
-            ✓ Selesai
+            {canReroll
+              ? `🔄 Ganti kartu (sisa ${rerollsLeft})`
+              : "🔄 Ganti kartu (habis)"}
           </Button>
-          <Button
-            variant="ghost"
-            size="lg"
-            onClick={() => {
-              if (settings.soundEnabled) sound.play("fail");
-              completeChallenge(false);
-            }}
-          >
-            ✗ Gagal / Skip
-          </Button>
+          <p className="max-w-sm text-center text-[11px] text-white/40">
+            Ganti = minta soal baru (bukan gagal). Jatah terbatas per orang per
+            game.
+          </p>
         </div>
       )}
 
       {canAct && player && player.powerCards.length > 0 && (
         <div className="flex flex-wrap justify-center gap-2">
-          <span className="w-full text-center text-xs text-white/50">Power Cards</span>
+          <span className="w-full text-center text-xs text-white/50">
+            Power Cards
+          </span>
           {player.powerCards.map((power, i) => (
             <Button
               key={`${power}-${i}`}

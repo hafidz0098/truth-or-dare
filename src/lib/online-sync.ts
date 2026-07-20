@@ -47,6 +47,8 @@ export type OnlineGameSnapshot = {
   highlights: Highlight[];
   bgMood: "neutral" | "truth" | "dare" | "party" | "chaos";
   showConfetti: boolean;
+  /** playerId -> sisa ganti kartu */
+  cardRerollsByPlayer?: Record<string, number>;
   mode?: GameMode;
   settings?: Partial<GameSettings>;
 };

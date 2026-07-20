@@ -20,6 +20,10 @@ export type OnlineRoom = {
 };
 
 function mapPlayer(row: RoomPlayerRow): Player {
+  const payload = (row.payload || {}) as {
+    powerCards?: Player["powerCards"];
+    cardRerollsLeft?: number;
+  };
   return {
     id: row.client_id,
     name: row.display_name,
@@ -34,9 +38,9 @@ function mapPlayer(row: RoomPlayerRow): Player {
     skips: row.skips,
     combo: row.combo,
     maxCombo: row.max_combo,
-    powerCards: (row.payload as { powerCards?: Player["powerCards"] })?.powerCards ?? [
-      "skip",
-    ],
+    powerCards: payload.powerCards ?? ["skip"],
+    cardRerollsLeft:
+      typeof payload.cardRerollsLeft === "number" ? payload.cardRerollsLeft : 2,
     titles: [],
     badges: [],
     isHost: row.is_host,
@@ -346,7 +350,10 @@ export async function syncRoomPlayers(roomId: string, players: Player[]) {
           skips: p.skips,
           combo: p.combo,
           max_combo: p.maxCombo,
-          payload: { powerCards: p.powerCards },
+          payload: {
+            powerCards: p.powerCards,
+            cardRerollsLeft: p.cardRerollsLeft,
+          },
         })
         .eq("room_id", roomId)
         .eq("client_id", p.id)

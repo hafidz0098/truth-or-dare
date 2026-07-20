@@ -373,6 +373,25 @@ export function LandingPage() {
             />
           </label>
           <label className="block">
+            <span className="mb-1 block">
+              Ganti kartu per orang: {settings.cardRerollsPerPlayer ?? 2}x
+            </span>
+            <input
+              type="range"
+              min={0}
+              max={5}
+              step={1}
+              value={settings.cardRerollsPerPlayer ?? 2}
+              onChange={(e) =>
+                updateSettings({ cardRerollsPerPlayer: Number(e.target.value) })
+              }
+              className="w-full"
+            />
+            <span className="mt-1 block text-[10px] text-white/40">
+              0 = tidak boleh ganti. Default 2.
+            </span>
+          </label>
+          <label className="block">
             <span className="mb-1 block">Timer (detik): {settings.timer}</span>
             <input
               type="range"

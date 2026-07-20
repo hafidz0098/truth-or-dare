@@ -127,6 +127,8 @@ export interface Player {
   combo: number;
   maxCombo: number;
   powerCards: PowerCardType[];
+  /** Sisa jatah ganti kartu (Truth/Dare) di sesi ini */
+  cardRerollsLeft: number;
   titles: string[];
   badges: string[];
   isHost: boolean;
@@ -186,6 +188,8 @@ export interface GameSettings {
   enableVoting: boolean;
   enableEvents: boolean;
   enablePowerCards: boolean;
+  /** Jatah ganti kartu per pemain per sesi (default 2) */
+  cardRerollsPerPlayer: number;
   adultContent: boolean;
   soundEnabled: boolean;
   musicEnabled: boolean;

@@ -383,6 +383,20 @@ export function Lobby() {
               onChange={(e) => updateSettings({ adultContent: e.target.checked })}
             />
           </label>
+          <label className="block text-sm text-white/70">
+            Ganti kartu / orang: {settings.cardRerollsPerPlayer ?? 2}x
+            <input
+              type="range"
+              min={0}
+              max={5}
+              step={1}
+              value={settings.cardRerollsPerPlayer ?? 2}
+              onChange={(e) =>
+                updateSettings({ cardRerollsPerPlayer: Number(e.target.value) })
+              }
+              className="w-full"
+            />
+          </label>
           <div>
             <p className="mb-1 text-xs text-white/50">
               {isCoupleMode
